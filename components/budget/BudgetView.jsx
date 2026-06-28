@@ -12,7 +12,7 @@ import Modal from "@/components/ui/Modal";
 import { saveCategory, deleteCategory, saveItem, deleteItem } from "@/app/(app)/budget/actions";
 import ExportButton from "@/components/share/ExportButton";
 
-export default function BudgetView({ categories: initialCats, items: initialItems, preview }) {
+export default function BudgetView({ categories: initialCats = [], items: initialItems = [], preview }) {
   const { t, scope } = useApp();
   const [categories, setCategories] = useState(initialCats);
   const [items, setItems] = useState(initialItems);
