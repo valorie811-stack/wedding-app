@@ -1,0 +1,18 @@
+# Normalize line endings. Store text files as LF in the repo and check them out
+# as LF on every platform (this overrides core.autocrlf), so Windows clients stop
+# warning that "LF will be replaced by CRLF".
+* text=auto eol=lf
+
+# Binary assets — never apply line-ending conversion. The repo is currently all
+# text/SVG, but this future-proofs it for PWA PNG icons, fonts, etc.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.pdf   binary
