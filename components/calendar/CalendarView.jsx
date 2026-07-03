@@ -79,12 +79,17 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
     const taskItems = tasks
       .filter((t) => sharedVisible(t.code))
       .filter((t) => t.due)
-      .flatMap((t) =>
-        expandTaskOccurrences(
-          { due: t.due, recurFreq: t.recurFreq, recurUntil: t.recurUntil },
-          rangeStart,
-          rangeEnd
-        ).map((date) => ({
+      .flatMap((t) => {
+        // Non-recurring milestones always show (no windowing regression);
+        // recurring ones expand into occurrences within the window.
+        const dates = t.recurFreq
+          ? expandTaskOccurrences(
+              { due: t.due, recurFreq: t.recurFreq, recurUntil: t.recurUntil },
+              rangeStart,
+              rangeEnd
+            )
+          : [t.due];
+        return dates.map((date) => ({
           kind: "milestone",
           id: t.id,
           date,
@@ -96,8 +101,8 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
           recurFreq: t.recurFreq,
           remindDays: t.remindDays,
           reminding: isReminding(date, t.remindDays, t.status, now),
-        }))
-      );
+        }));
+      });
     return [...evItems, ...taskItems];
   }, [events, tasks, scope, locale]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -199,6 +204,9 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
       due: dateStr || selected || tStr,
       assignee: "",
       status: "todo",
+      recurFreq: "",
+      recurUntil: "",
+      remindDays: "",
     });
   }
   function openEditTask(id) {
@@ -211,10 +219,15 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
       due: tk.due || "",
       assignee: tk.assignee || "",
       status: tk.status || "todo",
+      recurFreq: tk.recurFreq || "",
+      recurUntil: tk.recurUntil || "",
+      remindDays: tk.remindDays == null ? "" : tk.remindDays,
     });
   }
   function handleSaveTask() {
     if (!taskForm.title.trim()) return;
+    const remindDays =
+      taskForm.remindDays === "" || taskForm.remindDays == null ? null : Number(taskForm.remindDays);
     const payload = {
       id: taskForm.id,
       code: taskForm.code || null,
@@ -222,6 +235,9 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
       due: taskForm.due || null,
       assignee: (taskForm.assignee || "").trim(),
       status: taskForm.status,
+      recurFreq: taskForm.recurFreq || null,
+      recurUntil: taskForm.recurFreq && taskForm.recurUntil ? taskForm.recurUntil : null,
+      remindDays,
     };
     setTasks((prev) => {
       if (taskForm.id) return prev.map((tk) => (tk.id === taskForm.id ? { ...tk, ...payload } : tk));
@@ -549,6 +565,8 @@ function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag,
             {t("calendar.milestone")}
             {it.assignee ? ` · ${it.assignee}` : ""}
             {it.status ? ` · ${t(`planning.columns.${it.status}`)}` : ""}
+            {it.recurFreq ? ` · 🔁 ${t(`planning.recur.${it.recurFreq}`)}` : ""}
+            {it.remindDays != null ? ` · 🔔 ${t("planning.remindDays", { n: it.remindDays })}` : ""}
           </p>
         )}
       </div>
