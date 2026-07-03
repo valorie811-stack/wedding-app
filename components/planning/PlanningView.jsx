@@ -16,7 +16,17 @@ const COL_ACCENT = {
   done: "border-t-kk-400",
 };
 
-const blank = { id: null, code: "HP", title: "", due: "", assignee: "", status: "todo" };
+const blank = {
+  id: null,
+  code: "HP",
+  title: "",
+  due: "",
+  assignee: "",
+  status: "todo",
+  recurFreq: "",
+  recurUntil: "",
+  remindDays: "",
+};
 
 function fmtDate(date, locale) {
   if (!date) return "";
@@ -77,11 +87,15 @@ export default function PlanningView({ tasks: initial, preview }) {
       due: task.due || "",
       assignee: task.assignee || "",
       status: task.status,
+      recurFreq: task.recurFreq || "",
+      recurUntil: task.recurUntil || "",
+      remindDays: task.remindDays == null ? "" : task.remindDays,
     });
   }
 
   function handleSave() {
     if (!form.title.trim()) return;
+    const remindDays = form.remindDays === "" || form.remindDays == null ? null : Number(form.remindDays);
     const payload = {
       id: form.id,
       code: form.code || null,
@@ -89,6 +103,9 @@ export default function PlanningView({ tasks: initial, preview }) {
       due: form.due || null,
       assignee: form.assignee.trim(),
       status: form.status,
+      recurFreq: form.recurFreq || null,
+      recurUntil: form.recurFreq && form.recurUntil ? form.recurUntil : null,
+      remindDays,
     };
     setTasks((prev) => {
       if (form.id) return prev.map((t) => (t.id === form.id ? { ...t, ...payload } : t));

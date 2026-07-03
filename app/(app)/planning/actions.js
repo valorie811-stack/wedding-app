@@ -15,12 +15,17 @@ export async function saveTask(input) {
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
 
+  const remindDays =
+    input.remindDays === "" || input.remindDays == null ? null : Number(input.remindDays);
   const row = {
     wedding_id: await weddingIdByCode(supabase, input.code),
     title: input.title,
     due_date: input.due || null,
     status: input.status || "todo",
     assignee: input.assignee || null,
+    recur_freq: input.recurFreq || null,
+    recur_until: input.recurFreq && input.recurUntil ? input.recurUntil : null,
+    remind_days_before: Number.isFinite(remindDays) ? remindDays : null,
   };
 
   const res = isSeed(input.id)

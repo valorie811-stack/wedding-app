@@ -3,6 +3,7 @@
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { WEDDING_LIST } from "@/lib/theme";
+import { RECUR_FREQS, REMIND_OPTIONS } from "@/lib/recurrence";
 
 export const TASK_COLUMNS = ["todo", "in_progress", "done"];
 
@@ -13,6 +14,9 @@ export const blankTask = () => ({
   due: "",
   assignee: "",
   status: "todo",
+  recurFreq: "",
+  recurUntil: "",
+  remindDays: "",
 });
 
 // Shared add/edit form for a task (planning milestone). Used by both the
@@ -88,6 +92,40 @@ export default function TaskForm({ form, setForm, onSave, onDelete, onClose, t }
             <input className="input" value={form.assignee} onChange={set("assignee")} />
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t("planning.recurrence")}</label>
+            <select className="input" value={form.recurFreq || ""} onChange={set("recurFreq")}>
+              <option value="">{t("planning.recurNone")}</option>
+              {RECUR_FREQS.map((f) => (
+                <option key={f} value={f}>
+                  {t(`planning.recur.${f}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">{t("planning.reminder")}</label>
+            <select
+              className="input"
+              value={form.remindDays === "" || form.remindDays == null ? "" : String(form.remindDays)}
+              onChange={set("remindDays")}
+            >
+              <option value="">{t("planning.remindNone")}</option>
+              {REMIND_OPTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {t("planning.remindDays", { n: d })}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {form.recurFreq ? (
+          <div>
+            <label className="label">{t("planning.recurUntil")}</label>
+            <input className="input" type="date" value={form.recurUntil || ""} onChange={set("recurUntil")} />
+          </div>
+        ) : null}
       </form>
     </Modal>
   );

@@ -146,6 +146,10 @@ create table if not exists tasks (
   status      text not null default 'todo'
               check (status in ('todo','in_progress','done')),
   assignee    text,
+  recur_freq  text
+              check (recur_freq in ('daily','weekly','monthly')), -- null = one-off
+  recur_until date,           -- optional last occurrence (inclusive)
+  remind_days_before int,     -- in-app reminder lead time; null = no reminder
   created_at  timestamptz not null default now()
 );
 
