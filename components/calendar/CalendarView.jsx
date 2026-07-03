@@ -8,9 +8,12 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ShareButton from "@/components/share/ShareButton";
 import EventForm, { blankEvent } from "@/components/calendar/EventForm";
+import TaskForm from "@/components/planning/TaskForm";
 import { saveEvent, deleteEvent } from "@/app/(app)/scheduler/actions";
+import { saveTask, deleteTask } from "@/app/(app)/planning/actions";
 import { buildICS } from "@/lib/ics";
 import { downloadICS } from "@/lib/export";
+import { expandTaskOccurrences, isReminding } from "@/lib/recurrence";
 
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -30,17 +33,22 @@ function monthTitle(year, month, locale) {
   }
 }
 
-export default function CalendarView({ events: initialEvents, tasks, preview }) {
+export default function CalendarView({ events: initialEvents, tasks: initialTasks, preview }) {
   const { t, scope, locale } = useApp();
 
-  // Local optimistic copy so add/edit/remove reflect immediately (and still
+  // Local optimistic copies so add/edit/remove reflect immediately (and still
   // work in preview/seed mode, where the server action is a no-op).
   const [events, setEvents] = useState(initialEvents);
+  const [tasks, setTasks] = useState(initialTasks);
   const [form, setForm] = useState(null);
+  const [taskForm, setTaskForm] = useState(null);
+  const [dragItem, setDragItem] = useState(null); // { kind, id } being rescheduled
+  const [dragOverDate, setDragOverDate] = useState(null);
 
   const sharedVisible = (code) => scope === "BOTH" || code === scope || code == null;
 
   const eventById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
+  const taskById = useMemo(() => new Map(tasks.map((tk) => [tk.id, tk])), [tasks]);
 
   // Normalize events + task milestones into a single dated-item list.
   const items = useMemo(() => {
@@ -59,17 +67,42 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
         halal: e.halal,
         type: e.type,
       }));
+    // Expand recurring milestones into per-date occurrences within a window
+    // spanning ~1 month back to ~18 months ahead (covers month navigation).
+    const now = todayStr();
+    const back = new Date();
+    back.setDate(back.getDate() - 31);
+    const ahead = new Date();
+    ahead.setDate(ahead.getDate() + 540);
+    const rangeStart = ymd(back.getFullYear(), back.getMonth(), back.getDate());
+    const rangeEnd = ymd(ahead.getFullYear(), ahead.getMonth(), ahead.getDate());
     const taskItems = tasks
       .filter((t) => sharedVisible(t.code))
       .filter((t) => t.due)
-      .map((t) => ({
-        kind: "milestone",
-        date: t.due,
-        code: t.code,
-        title: t.title,
-        assignee: t.assignee,
-        status: t.status,
-      }));
+      .flatMap((t) => {
+        // Non-recurring milestones always show (no windowing regression);
+        // recurring ones expand into occurrences within the window.
+        const dates = t.recurFreq
+          ? expandTaskOccurrences(
+              { due: t.due, recurFreq: t.recurFreq, recurUntil: t.recurUntil },
+              rangeStart,
+              rangeEnd
+            )
+          : [t.due];
+        return dates.map((date) => ({
+          kind: "milestone",
+          id: t.id,
+          date,
+          code: t.code,
+          title: t.title,
+          assignee: t.assignee,
+          status: t.status,
+          recurring: !!t.recurFreq,
+          recurFreq: t.recurFreq,
+          remindDays: t.remindDays,
+          reminding: isReminding(date, t.remindDays, t.status, now),
+        }));
+      });
     return [...evItems, ...taskItems];
   }, [events, tasks, scope, locale]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -162,6 +195,88 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
     deleteEvent(id).catch(() => {});
   }
 
+  // --- task milestones (reuses the planning TaskForm + actions) ------------
+  function openNewTask(dateStr) {
+    setTaskForm({
+      id: null,
+      code: scope === "BOTH" ? "" : scope,
+      title: "",
+      due: dateStr || selected || tStr,
+      assignee: "",
+      status: "todo",
+      recurFreq: "",
+      recurUntil: "",
+      remindDays: "",
+    });
+  }
+  function openEditTask(id) {
+    const tk = taskById.get(id);
+    if (!tk) return;
+    setTaskForm({
+      id: tk.id,
+      code: tk.code || "",
+      title: tk.title || "",
+      due: tk.due || "",
+      assignee: tk.assignee || "",
+      status: tk.status || "todo",
+      recurFreq: tk.recurFreq || "",
+      recurUntil: tk.recurUntil || "",
+      remindDays: tk.remindDays == null ? "" : tk.remindDays,
+    });
+  }
+  function handleSaveTask() {
+    if (!taskForm.title.trim()) return;
+    const remindDays =
+      taskForm.remindDays === "" || taskForm.remindDays == null ? null : Number(taskForm.remindDays);
+    const payload = {
+      id: taskForm.id,
+      code: taskForm.code || null,
+      title: taskForm.title.trim(),
+      due: taskForm.due || null,
+      assignee: (taskForm.assignee || "").trim(),
+      status: taskForm.status,
+      recurFreq: taskForm.recurFreq || null,
+      recurUntil: taskForm.recurFreq && taskForm.recurUntil ? taskForm.recurUntil : null,
+      remindDays,
+    };
+    setTasks((prev) => {
+      if (taskForm.id) return prev.map((tk) => (tk.id === taskForm.id ? { ...tk, ...payload } : tk));
+      return [...prev, { ...payload, id: crypto.randomUUID() }];
+    });
+    setTaskForm(null);
+    saveTask(payload).catch(() => {});
+  }
+  function handleDeleteTask(id) {
+    if (!window.confirm(t("planning.deleteConfirm"))) return;
+    setTasks((prev) => prev.filter((tk) => tk.id !== id));
+    setTaskForm(null);
+    deleteTask(id).catch(() => {});
+  }
+
+  // --- drag-to-reschedule --------------------------------------------------
+  // Recurring occurrences aren't draggable (would ambiguously shift the series).
+  function itemDraggable(it) {
+    if (it.id == null) return false;
+    if (it.kind === "milestone") return !it.recurring;
+    return it.kind === "event";
+  }
+  function handleReschedule(item, dateStr) {
+    setDragItem(null);
+    setDragOverDate(null);
+    if (!item || !dateStr) return;
+    if (item.kind === "event") {
+      const ev = eventById.get(item.id);
+      if (!ev || ev.date === dateStr) return;
+      setEvents((prev) => prev.map((e) => (e.id === item.id ? { ...e, date: dateStr } : e)));
+      saveEvent({ ...ev, code: ev.code || null, date: dateStr }).catch(() => {});
+    } else if (item.kind === "milestone") {
+      const tk = taskById.get(item.id);
+      if (!tk || tk.due === dateStr) return;
+      setTasks((prev) => prev.map((x) => (x.id === item.id ? { ...x, due: dateStr } : x)));
+      saveTask({ ...tk, code: tk.code || null, due: dateStr }).catch(() => {});
+    }
+  }
+
   // --- export --------------------------------------------------------------
   function handleExport() {
     const scoped = events.filter((e) => sharedVisible(e.code) && e.date);
@@ -242,16 +357,30 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
                 const dayItems = byDate.get(dateStr) || [];
                 const isToday = dateStr === tStr;
                 const isSel = dateStr === selected;
+                const isDropTarget = dragItem && dragOverDate === dateStr;
                 return (
                   <button
                     key={dateStr}
                     onClick={() => setSelected(isSel ? null : dateStr)}
+                    onDragOver={(e) => {
+                      if (dragItem) {
+                        e.preventDefault();
+                        if (dragOverDate !== dateStr) setDragOverDate(dateStr);
+                      }
+                    }}
+                    onDragLeave={() => setDragOverDate((d) => (d === dateStr ? null : d))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleReschedule(dragItem, dateStr);
+                    }}
                     className={`flex aspect-square flex-col items-center rounded-lg border p-1 text-left transition ${
-                      isSel
-                        ? "border-gold-400 bg-gold-50"
-                        : dayItems.length
-                          ? "border-ink-200 bg-white hover:border-ink-300"
-                          : "border-transparent hover:bg-ink-50"
+                      isDropTarget
+                        ? "border-gold-400 bg-gold-50 ring-2 ring-gold-300"
+                        : isSel
+                          ? "border-gold-400 bg-gold-50"
+                          : dayItems.length
+                            ? "border-ink-200 bg-white hover:border-ink-300"
+                            : "border-transparent hover:bg-ink-50"
                     }`}
                   >
                     <span
@@ -262,14 +391,24 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
                       {day}
                     </span>
                     <div className="mt-0.5 flex flex-wrap justify-center gap-0.5">
-                      {dayItems.slice(0, 4).map((it, j) => (
-                        <span
-                          key={j}
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ background: dotColor(it) }}
-                          title={it.title}
-                        />
-                      ))}
+                      {dayItems.slice(0, 4).map((it, j) => {
+                        const drag = itemDraggable(it);
+                        return (
+                          <span
+                            key={j}
+                            draggable={drag}
+                            onDragStart={(e) => {
+                              e.stopPropagation();
+                              setDragItem({ kind: it.kind, id: it.id });
+                            }}
+                            className={`h-1.5 w-1.5 rounded-full ${drag ? "cursor-grab" : ""} ${
+                              it.reminding ? "ring-1 ring-amber-400" : ""
+                            }`}
+                            style={{ background: dotColor(it) }}
+                            title={it.title}
+                          />
+                        );
+                      })}
                     </div>
                   </button>
                 );
@@ -299,13 +438,28 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
                 ) : (
                   <ul className="space-y-3">
                     {selectedItems.map((it, i) => (
-                      <DetailRow key={i} it={it} t={t} onEdit={openEdit} onDelete={handleDelete} />
+                      <DetailRow
+                        key={i}
+                        it={it}
+                        t={t}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        onEditTask={openEditTask}
+                        onDeleteTask={handleDeleteTask}
+                        canDrag={itemDraggable(it)}
+                        onDragStartItem={(x) => setDragItem({ kind: x.kind, id: x.id })}
+                      />
                     ))}
                   </ul>
                 )}
-                <Button variant="ghost" size="sm" className="mt-4 w-full" onClick={() => openNew(selected)}>
-                  + {t("calendar.addOnDay")}
-                </Button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => openNew(selected)}>
+                    + {t("calendar.addOnDay")}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => openNewTask(selected)}>
+                    + {t("calendar.addMilestoneOnDay")}
+                  </Button>
+                </div>
               </>
             ) : (
               <UpcomingList items={items} tStr={tStr} t={t} locale={locale} onPick={(d) => {
@@ -324,6 +478,15 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
         onSave={handleSave}
         onDelete={handleDelete}
         onClose={() => setForm(null)}
+        t={t}
+      />
+
+      <TaskForm
+        form={taskForm}
+        setForm={setTaskForm}
+        onSave={handleSaveTask}
+        onDelete={handleDeleteTask}
+        onClose={() => setTaskForm(null)}
         t={t}
       />
     </div>
@@ -355,11 +518,19 @@ function formatLong(dateStr, locale) {
   }
 }
 
-function DetailRow({ it, t, onEdit, onDelete }) {
+function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag, onDragStartItem }) {
   const isEvent = it.kind === "event";
-  const editable = isEvent && it.id != null && onEdit;
+  const editHandler = isEvent ? onEdit : onEditTask;
+  const deleteHandler = isEvent ? onDelete : onDeleteTask;
+  const editable = it.id != null && !!editHandler;
+  const edit = () => editHandler(it.id);
+  const del = () => deleteHandler?.(it.id);
   return (
-    <li className="group flex gap-3">
+    <li
+      draggable={!!canDrag}
+      onDragStart={() => canDrag && onDragStartItem?.(it)}
+      className={`group flex gap-3 ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+    >
       <span
         className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
         style={{ background: dotColor(it) }}
@@ -368,13 +539,19 @@ function DetailRow({ it, t, onEdit, onDelete }) {
         <div className="flex items-center gap-2">
           {editable ? (
             <button
-              onClick={() => onEdit(it.id)}
+              onClick={edit}
               className="text-left text-sm font-medium text-ink-800 hover:text-ink-950 hover:underline"
             >
               {it.title}
             </button>
           ) : (
             <p className="text-sm font-medium text-ink-800">{it.title}</p>
+          )}
+          {it.reminding && <span title={t("planning.reminder")}>🔔</span>}
+          {it.recurring && (
+            <span title={t(`planning.recur.${it.recurFreq}`)} className="text-ink-400">
+              🔁
+            </span>
           )}
           {it.halal && <Badge tone="green">{t("vendors.halal")}</Badge>}
         </div>
@@ -388,6 +565,8 @@ function DetailRow({ it, t, onEdit, onDelete }) {
             {t("calendar.milestone")}
             {it.assignee ? ` · ${it.assignee}` : ""}
             {it.status ? ` · ${t(`planning.columns.${it.status}`)}` : ""}
+            {it.recurFreq ? ` · 🔁 ${t(`planning.recur.${it.recurFreq}`)}` : ""}
+            {it.remindDays != null ? ` · 🔔 ${t("planning.remindDays", { n: it.remindDays })}` : ""}
           </p>
         )}
       </div>
@@ -395,7 +574,7 @@ function DetailRow({ it, t, onEdit, onDelete }) {
       {editable && (
         <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
           <button
-            onClick={() => onEdit(it.id)}
+            onClick={edit}
             aria-label={t("common.edit")}
             title={t("common.edit")}
             className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
@@ -403,7 +582,7 @@ function DetailRow({ it, t, onEdit, onDelete }) {
             ✎
           </button>
           <button
-            onClick={() => onDelete(it.id)}
+            onClick={del}
             aria-label={t("common.delete")}
             title={t("common.delete")}
             className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-red-600"
@@ -434,7 +613,11 @@ function UpcomingList({ items, tStr, t, locale, onPick }) {
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dotColor(it) }} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-ink-800">{it.title}</p>
+              <p className="truncate text-sm text-ink-800">
+                {it.title}
+                {it.reminding ? " 🔔" : ""}
+                {it.recurring ? " 🔁" : ""}
+              </p>
               <p className="text-xs text-ink-500">{formatShort(it.date, locale)}</p>
             </div>
             {it.code && <Badge tone={it.code === "HP" ? "hp" : "kk"}>{it.code}</Badge>}

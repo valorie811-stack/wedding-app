@@ -15,12 +15,17 @@ export async function saveTask(input) {
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
 
+  const remindDays =
+    input.remindDays === "" || input.remindDays == null ? null : Number(input.remindDays);
   const row = {
     wedding_id: await weddingIdByCode(supabase, input.code),
     title: input.title,
     due_date: input.due || null,
     status: input.status || "todo",
     assignee: input.assignee || null,
+    recur_freq: input.recurFreq || null,
+    recur_until: input.recurFreq && input.recurUntil ? input.recurUntil : null,
+    remind_days_before: Number.isFinite(remindDays) ? remindDays : null,
   };
 
   const res = isSeed(input.id)
@@ -29,6 +34,7 @@ export async function saveTask(input) {
 
   if (res.error) return { ok: false, error: res.error.message };
   revalidatePath("/planning");
+  revalidatePath("/scheduler");
   revalidatePath("/dashboard");
   return { ok: true, preview: false, id: res.data?.id };
 }
@@ -41,6 +47,7 @@ export async function updateTaskStatus(id, status) {
   const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/planning");
+  revalidatePath("/scheduler");
   revalidatePath("/dashboard");
   return { ok: true, preview: false };
 }
@@ -52,6 +59,7 @@ export async function deleteTask(id) {
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/planning");
+  revalidatePath("/scheduler");
   revalidatePath("/dashboard");
   return { ok: true, preview: false };
 }

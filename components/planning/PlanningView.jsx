@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { WEDDINGS, WEDDING_LIST } from "@/lib/theme";
+import { WEDDINGS } from "@/lib/theme";
 import { Card, CardBody } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
 import { saveTask, updateTaskStatus, deleteTask } from "@/app/(app)/planning/actions";
+import TaskForm from "@/components/planning/TaskForm";
 
 const COLUMNS = ["todo", "in_progress", "done"];
 const COL_ACCENT = {
@@ -16,7 +16,17 @@ const COL_ACCENT = {
   done: "border-t-kk-400",
 };
 
-const blank = { id: null, code: "HP", title: "", due: "", assignee: "", status: "todo" };
+const blank = {
+  id: null,
+  code: "HP",
+  title: "",
+  due: "",
+  assignee: "",
+  status: "todo",
+  recurFreq: "",
+  recurUntil: "",
+  remindDays: "",
+};
 
 function fmtDate(date, locale) {
   if (!date) return "";
@@ -77,11 +87,15 @@ export default function PlanningView({ tasks: initial, preview }) {
       due: task.due || "",
       assignee: task.assignee || "",
       status: task.status,
+      recurFreq: task.recurFreq || "",
+      recurUntil: task.recurUntil || "",
+      remindDays: task.remindDays == null ? "" : task.remindDays,
     });
   }
 
   function handleSave() {
     if (!form.title.trim()) return;
+    const remindDays = form.remindDays === "" || form.remindDays == null ? null : Number(form.remindDays);
     const payload = {
       id: form.id,
       code: form.code || null,
@@ -89,6 +103,9 @@ export default function PlanningView({ tasks: initial, preview }) {
       due: form.due || null,
       assignee: form.assignee.trim(),
       status: form.status,
+      recurFreq: form.recurFreq || null,
+      recurUntil: form.recurFreq && form.recurUntil ? form.recurUntil : null,
+      remindDays,
     };
     setTasks((prev) => {
       if (form.id) return prev.map((t) => (t.id === form.id ? { ...t, ...payload } : t));
@@ -219,73 +236,5 @@ export default function PlanningView({ tasks: initial, preview }) {
 
       <TaskForm form={form} setForm={setForm} onSave={handleSave} onClose={() => setForm(null)} t={t} />
     </div>
-  );
-}
-
-function TaskForm({ form, setForm, onSave, onClose, t }) {
-  if (!form) return null;
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  return (
-    <Modal
-      open={!!form}
-      onClose={onClose}
-      title={form.id ? t("planning.editTask") : t("planning.newTask")}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button variant="primary" onClick={onSave}>
-            {t("common.save")}
-          </Button>
-        </>
-      }
-    >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSave();
-        }}
-      >
-        <div>
-          <label className="label">{t("planning.taskTitle")}</label>
-          <input className="input" value={form.title} onChange={set("title")} autoFocus />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t("common.wedding")}</label>
-            <select className="input" value={form.code ?? ""} onChange={set("code")}>
-              <option value="">↔ {t("common.shared")}</option>
-              {WEDDING_LIST.map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.flag} {w.city.en}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">{t("planning.status")}</label>
-            <select className="input" value={form.status} onChange={set("status")}>
-              {COLUMNS.map((c) => (
-                <option key={c} value={c}>
-                  {t(`planning.columns.${c}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t("planning.dueDate")}</label>
-            <input className="input" type="date" value={form.due} onChange={set("due")} />
-          </div>
-          <div>
-            <label className="label">{t("planning.assignee")}</label>
-            <input className="input" value={form.assignee} onChange={set("assignee")} />
-          </div>
-        </div>
-      </form>
-    </Modal>
   );
 }
