@@ -9,6 +9,9 @@ export default function QrCode({ value, label = "qr", size = 140 }) {
 
   useEffect(() => {
     let active = true;
+    // Clear the previous QR while the new value renders. Runs only on `value`
+    // change, so the cascading-render concern doesn't apply here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSrc(null);
     setErr(false);
     makeQrDataUrl(value)

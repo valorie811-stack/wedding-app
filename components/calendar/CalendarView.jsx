@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { inScope } from "@/lib/dashboard";
 import { WEDDINGS } from "@/lib/theme";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ShareButton from "@/components/share/ShareButton";
+import EventForm, { blankEvent } from "@/components/calendar/EventForm";
+import { saveEvent, deleteEvent } from "@/app/(app)/scheduler/actions";
+import { buildICS } from "@/lib/ics";
+import { downloadICS } from "@/lib/export";
 
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -27,18 +30,26 @@ function monthTitle(year, month, locale) {
   }
 }
 
-export default function CalendarView({ events, tasks, preview }) {
+export default function CalendarView({ events: initialEvents, tasks, preview }) {
   const { t, scope, locale } = useApp();
 
+  // Local optimistic copy so add/edit/remove reflect immediately (and still
+  // work in preview/seed mode, where the server action is a no-op).
+  const [events, setEvents] = useState(initialEvents);
+  const [form, setForm] = useState(null);
+
   const sharedVisible = (code) => scope === "BOTH" || code === scope || code == null;
+
+  const eventById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
 
   // Normalize events + task milestones into a single dated-item list.
   const items = useMemo(() => {
     const evItems = events
-      .filter((e) => inScope(e.code, scope))
+      .filter((e) => sharedVisible(e.code))
       .filter((e) => e.date)
       .map((e) => ({
         kind: "event",
+        id: e.id,
         date: e.date,
         code: e.code,
         title: e.name?.[locale] || e.name?.en,
@@ -105,6 +116,68 @@ export default function CalendarView({ events, tasks, preview }) {
 
   const selectedItems = selected ? byDate.get(selected) || [] : [];
 
+  // --- add / edit / remove -------------------------------------------------
+  function openNew(dateStr) {
+    setForm({
+      ...blankEvent(),
+      date: dateStr || selected || tStr,
+      code: scope === "BOTH" ? "" : scope,
+    });
+  }
+  function openEdit(id) {
+    const e = eventById.get(id);
+    if (!e) return;
+    setForm({
+      id: e.id,
+      code: e.code || "",
+      name: { en: e.name?.en || "", vi: e.name?.vi || "", zh: e.name?.zh || "" },
+      date: e.date || "",
+      start: (e.start || "").slice(0, 5),
+      end: (e.end || "").slice(0, 5),
+      location: e.location || "",
+      type: e.type || "ceremony",
+      dress: e.dress || "",
+      halal: !!e.halal,
+      notes: e.notes || "",
+    });
+  }
+  function handleSave() {
+    if (!form.name.en.trim()) return;
+    const payload = {
+      ...form,
+      code: form.code || null,
+      name: { ...form.name, en: form.name.en.trim() },
+    };
+    setEvents((prev) => {
+      if (form.id) return prev.map((e) => (e.id === form.id ? { ...e, ...payload } : e));
+      return [...prev, { ...payload, id: crypto.randomUUID() }];
+    });
+    setForm(null);
+    saveEvent({ ...payload, id: form.id }).catch(() => {});
+  }
+  function handleDelete(id) {
+    if (!window.confirm(t("calendar.deleteConfirm"))) return;
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    setForm(null);
+    deleteEvent(id).catch(() => {});
+  }
+
+  // --- export --------------------------------------------------------------
+  function handleExport() {
+    const scoped = events.filter((e) => sharedVisible(e.code) && e.date);
+    const labels = {
+      ceremony: t("calendar.types.ceremony"),
+      reception: t("calendar.types.reception"),
+      gathering: t("calendar.types.gathering"),
+      other: t("calendar.types.other"),
+      dressCode: t("calendar.form.dressCode"),
+      halal: t("calendar.form.halal"),
+    };
+    const ics = buildICS(scoped, { locale, labels, calendarName: t("calendar.title") });
+    const suffix = scope === "BOTH" ? "" : `-${scope}`;
+    downloadICS(ics, `wedding-schedule${suffix}.ics`);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -117,7 +190,13 @@ export default function CalendarView({ events, tasks, preview }) {
           <Button as="a" href={`/api/pdf/runsheet?scope=${scope}`} target="_blank" rel="noopener" variant="outline">
             ⬇ PDF
           </Button>
+          <Button variant="outline" onClick={handleExport} title={t("calendar.exportHint")}>
+            📅 {t("calendar.export")}
+          </Button>
           <ShareButton resource="schedule" label={t("calendar.title")} />
+          <Button variant="gold" onClick={() => openNew()}>
+            + {t("calendar.addEvent")}
+          </Button>
         </div>
       </div>
 
@@ -214,15 +293,20 @@ export default function CalendarView({ events, tasks, preview }) {
           />
           <CardBody className="pt-0">
             {selected ? (
-              selectedItems.length === 0 ? (
-                <p className="py-6 text-center text-sm text-ink-400">{t("calendar.nothing")}</p>
-              ) : (
-                <ul className="space-y-3">
-                  {selectedItems.map((it, i) => (
-                    <DetailRow key={i} it={it} t={t} />
-                  ))}
-                </ul>
-              )
+              <>
+                {selectedItems.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-ink-400">{t("calendar.nothing")}</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {selectedItems.map((it, i) => (
+                      <DetailRow key={i} it={it} t={t} onEdit={openEdit} onDelete={handleDelete} />
+                    ))}
+                  </ul>
+                )}
+                <Button variant="ghost" size="sm" className="mt-4 w-full" onClick={() => openNew(selected)}>
+                  + {t("calendar.addOnDay")}
+                </Button>
+              </>
             ) : (
               <UpcomingList items={items} tStr={tStr} t={t} locale={locale} onPick={(d) => {
                 const [y, m] = d.split("-").map(Number);
@@ -233,6 +317,15 @@ export default function CalendarView({ events, tasks, preview }) {
           </CardBody>
         </Card>
       </div>
+
+      <EventForm
+        form={form}
+        setForm={setForm}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        onClose={() => setForm(null)}
+        t={t}
+      />
     </div>
   );
 }
@@ -262,17 +355,27 @@ function formatLong(dateStr, locale) {
   }
 }
 
-function DetailRow({ it, t }) {
+function DetailRow({ it, t, onEdit, onDelete }) {
   const isEvent = it.kind === "event";
+  const editable = isEvent && it.id != null && onEdit;
   return (
-    <li className="flex gap-3">
+    <li className="group flex gap-3">
       <span
         className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
         style={{ background: dotColor(it) }}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-ink-800">{it.title}</p>
+          {editable ? (
+            <button
+              onClick={() => onEdit(it.id)}
+              className="text-left text-sm font-medium text-ink-800 hover:text-ink-950 hover:underline"
+            >
+              {it.title}
+            </button>
+          ) : (
+            <p className="text-sm font-medium text-ink-800">{it.title}</p>
+          )}
           {it.halal && <Badge tone="green">{t("vendors.halal")}</Badge>}
         </div>
         {isEvent ? (
@@ -289,6 +392,26 @@ function DetailRow({ it, t }) {
         )}
       </div>
       {it.code && <Badge tone={it.code === "HP" ? "hp" : "kk"}>{it.code}</Badge>}
+      {editable && (
+        <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+          <button
+            onClick={() => onEdit(it.id)}
+            aria-label={t("common.edit")}
+            title={t("common.edit")}
+            className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+          >
+            ✎
+          </button>
+          <button
+            onClick={() => onDelete(it.id)}
+            aria-label={t("common.delete")}
+            title={t("common.delete")}
+            className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-red-600"
+          >
+            🗑
+          </button>
+        </div>
+      )}
     </li>
   );
 }
