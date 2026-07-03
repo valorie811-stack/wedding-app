@@ -8,7 +8,9 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ShareButton from "@/components/share/ShareButton";
 import EventForm, { blankEvent } from "@/components/calendar/EventForm";
+import TaskForm from "@/components/planning/TaskForm";
 import { saveEvent, deleteEvent } from "@/app/(app)/scheduler/actions";
+import { saveTask, deleteTask } from "@/app/(app)/planning/actions";
 import { buildICS } from "@/lib/ics";
 import { downloadICS } from "@/lib/export";
 
@@ -30,17 +32,20 @@ function monthTitle(year, month, locale) {
   }
 }
 
-export default function CalendarView({ events: initialEvents, tasks, preview }) {
+export default function CalendarView({ events: initialEvents, tasks: initialTasks, preview }) {
   const { t, scope, locale } = useApp();
 
-  // Local optimistic copy so add/edit/remove reflect immediately (and still
+  // Local optimistic copies so add/edit/remove reflect immediately (and still
   // work in preview/seed mode, where the server action is a no-op).
   const [events, setEvents] = useState(initialEvents);
+  const [tasks, setTasks] = useState(initialTasks);
   const [form, setForm] = useState(null);
+  const [taskForm, setTaskForm] = useState(null);
 
   const sharedVisible = (code) => scope === "BOTH" || code === scope || code == null;
 
   const eventById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
+  const taskById = useMemo(() => new Map(tasks.map((tk) => [tk.id, tk])), [tasks]);
 
   // Normalize events + task milestones into a single dated-item list.
   const items = useMemo(() => {
@@ -64,6 +69,7 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
       .filter((t) => t.due)
       .map((t) => ({
         kind: "milestone",
+        id: t.id,
         date: t.due,
         code: t.code,
         title: t.title,
@@ -160,6 +166,53 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
     setEvents((prev) => prev.filter((e) => e.id !== id));
     setForm(null);
     deleteEvent(id).catch(() => {});
+  }
+
+  // --- task milestones (reuses the planning TaskForm + actions) ------------
+  function openNewTask(dateStr) {
+    setTaskForm({
+      id: null,
+      code: scope === "BOTH" ? "" : scope,
+      title: "",
+      due: dateStr || selected || tStr,
+      assignee: "",
+      status: "todo",
+    });
+  }
+  function openEditTask(id) {
+    const tk = taskById.get(id);
+    if (!tk) return;
+    setTaskForm({
+      id: tk.id,
+      code: tk.code || "",
+      title: tk.title || "",
+      due: tk.due || "",
+      assignee: tk.assignee || "",
+      status: tk.status || "todo",
+    });
+  }
+  function handleSaveTask() {
+    if (!taskForm.title.trim()) return;
+    const payload = {
+      id: taskForm.id,
+      code: taskForm.code || null,
+      title: taskForm.title.trim(),
+      due: taskForm.due || null,
+      assignee: (taskForm.assignee || "").trim(),
+      status: taskForm.status,
+    };
+    setTasks((prev) => {
+      if (taskForm.id) return prev.map((tk) => (tk.id === taskForm.id ? { ...tk, ...payload } : tk));
+      return [...prev, { ...payload, id: crypto.randomUUID() }];
+    });
+    setTaskForm(null);
+    saveTask(payload).catch(() => {});
+  }
+  function handleDeleteTask(id) {
+    if (!window.confirm(t("planning.deleteConfirm"))) return;
+    setTasks((prev) => prev.filter((tk) => tk.id !== id));
+    setTaskForm(null);
+    deleteTask(id).catch(() => {});
   }
 
   // --- export --------------------------------------------------------------
@@ -299,13 +352,26 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
                 ) : (
                   <ul className="space-y-3">
                     {selectedItems.map((it, i) => (
-                      <DetailRow key={i} it={it} t={t} onEdit={openEdit} onDelete={handleDelete} />
+                      <DetailRow
+                        key={i}
+                        it={it}
+                        t={t}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        onEditTask={openEditTask}
+                        onDeleteTask={handleDeleteTask}
+                      />
                     ))}
                   </ul>
                 )}
-                <Button variant="ghost" size="sm" className="mt-4 w-full" onClick={() => openNew(selected)}>
-                  + {t("calendar.addOnDay")}
-                </Button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => openNew(selected)}>
+                    + {t("calendar.addOnDay")}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => openNewTask(selected)}>
+                    + {t("calendar.addMilestoneOnDay")}
+                  </Button>
+                </div>
               </>
             ) : (
               <UpcomingList items={items} tStr={tStr} t={t} locale={locale} onPick={(d) => {
@@ -324,6 +390,15 @@ export default function CalendarView({ events: initialEvents, tasks, preview }) 
         onSave={handleSave}
         onDelete={handleDelete}
         onClose={() => setForm(null)}
+        t={t}
+      />
+
+      <TaskForm
+        form={taskForm}
+        setForm={setTaskForm}
+        onSave={handleSaveTask}
+        onDelete={handleDeleteTask}
+        onClose={() => setTaskForm(null)}
         t={t}
       />
     </div>
@@ -355,9 +430,13 @@ function formatLong(dateStr, locale) {
   }
 }
 
-function DetailRow({ it, t, onEdit, onDelete }) {
+function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask }) {
   const isEvent = it.kind === "event";
-  const editable = isEvent && it.id != null && onEdit;
+  const editHandler = isEvent ? onEdit : onEditTask;
+  const deleteHandler = isEvent ? onDelete : onDeleteTask;
+  const editable = it.id != null && !!editHandler;
+  const edit = () => editHandler(it.id);
+  const del = () => deleteHandler?.(it.id);
   return (
     <li className="group flex gap-3">
       <span
@@ -368,7 +447,7 @@ function DetailRow({ it, t, onEdit, onDelete }) {
         <div className="flex items-center gap-2">
           {editable ? (
             <button
-              onClick={() => onEdit(it.id)}
+              onClick={edit}
               className="text-left text-sm font-medium text-ink-800 hover:text-ink-950 hover:underline"
             >
               {it.title}
@@ -395,7 +474,7 @@ function DetailRow({ it, t, onEdit, onDelete }) {
       {editable && (
         <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
           <button
-            onClick={() => onEdit(it.id)}
+            onClick={edit}
             aria-label={t("common.edit")}
             title={t("common.edit")}
             className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
@@ -403,7 +482,7 @@ function DetailRow({ it, t, onEdit, onDelete }) {
             ✎
           </button>
           <button
-            onClick={() => onDelete(it.id)}
+            onClick={del}
             aria-label={t("common.delete")}
             title={t("common.delete")}
             className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-red-600"

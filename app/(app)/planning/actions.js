@@ -29,6 +29,7 @@ export async function saveTask(input) {
 
   if (res.error) return { ok: false, error: res.error.message };
   revalidatePath("/planning");
+  revalidatePath("/scheduler");
   revalidatePath("/dashboard");
   return { ok: true, preview: false, id: res.data?.id };
 }
@@ -41,6 +42,7 @@ export async function updateTaskStatus(id, status) {
   const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/planning");
+  revalidatePath("/scheduler");
   revalidatePath("/dashboard");
   return { ok: true, preview: false };
 }
@@ -52,6 +54,7 @@ export async function deleteTask(id) {
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/planning");
+  revalidatePath("/scheduler");
   revalidatePath("/dashboard");
   return { ok: true, preview: false };
 }
