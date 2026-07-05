@@ -1,7 +1,17 @@
 // Minimal service worker: network-first for page navigations (with an offline
-// fallback), cache-first for static assets. Bump CACHE to invalidate.
-const CACHE = "tw-v1";
+// fallback), cache-first for immutable built assets only. Bump CACHE to invalidate.
+const CACHE = "tw-v2";
 const OFFLINE_URL = "/offline";
+
+// Only these are safe to serve cache-first: hashed build output and static images.
+// Everything else (RSC data requests, API calls, dynamic pages) must hit the
+// network, otherwise tabs show stale data after edits.
+function isStaticAsset(url) {
+  if (url.origin !== self.location.origin) return false;
+  if (url.pathname.startsWith("/_next/static/")) return true;
+  if (url.pathname.startsWith("/_next/image")) return true;
+  return /\.(svg|png|jpg|jpeg|gif|webp|ico|woff2?)$/.test(url.pathname);
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -21,6 +31,7 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
+  // Full-page navigations: network-first with offline fallback.
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
@@ -34,14 +45,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for built assets and same-origin static files.
+  // Cache-first strictly for immutable static assets. Do NOT intercept anything
+  // else — in particular Next.js RSC payload fetches (client-side tab
+  // navigations), which must always be fresh.
+  const url = new URL(req.url);
+  if (!isStaticAsset(url)) return;
+
   event.respondWith(
     caches.match(req).then(
       (cached) =>
         cached ||
         fetch(req)
           .then((res) => {
-            if (res.ok && req.url.startsWith(self.location.origin)) {
+            if (res.ok) {
               const copy = res.clone();
               caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
             }
