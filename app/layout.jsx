@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
   title: "Two Weddings — Planner",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
       <body className="font-sans antialiased text-ink-900">
         <AppProvider>{children}</AppProvider>
         <ServiceWorkerRegister />
+        <SpeedInsights />
       </body>
     </html>
   );
