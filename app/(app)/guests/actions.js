@@ -12,7 +12,7 @@ function refresh() {
 }
 
 // Insert/update a guest and sync their per-event invitations in one call.
-// input: { id, full_name, email, phone, side, plus_one, dietary[], notes,
+// input: { id, full_name, side, plus_one, dietary[], notes,
 //          invites: [{ event_id, status }] }
 export async function saveGuest(input) {
   const supabase = await createClient();
@@ -20,8 +20,6 @@ export async function saveGuest(input) {
 
   const fields = {
     full_name: input.full_name,
-    email: input.email || null,
-    phone: input.phone || null,
     side: input.side || "both",
     plus_one: !!input.plus_one,
     dietary: input.dietary || [],

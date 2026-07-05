@@ -77,8 +77,6 @@ create table if not exists events (
 create table if not exists guests (
   id          uuid primary key default gen_random_uuid(),
   full_name   text not null,
-  email       text,
-  phone       text,
   side        text default 'both' check (side in ('bride','groom','both')),
   plus_one    boolean not null default false,
   dietary     text[] not null default '{}',    -- e.g. {halal,vegetarian}

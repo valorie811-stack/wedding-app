@@ -18,8 +18,6 @@ const STATUS_TONE = { confirmed: "green", pending: "amber", declined: "red" };
 const blank = {
   id: null,
   full_name: "",
-  email: "",
-  phone: "",
   side: "both",
   plus_one: false,
   dietary: [],
@@ -47,7 +45,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
     const q = search.trim().toLowerCase();
     return guests
       .filter(inScope)
-      .filter((g) => !q || g.full_name.toLowerCase().includes(q) || (g.email || "").toLowerCase().includes(q))
+      .filter((g) => !q || g.full_name.toLowerCase().includes(q))
       .filter((g) => sideFilter === "all" || g.side === sideFilter)
       .filter((g) => statusFilter === "all" || scopedInvites(g).some((i) => i.status === statusFilter));
   }, [guests, search, sideFilter, statusFilter, scope]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -76,8 +74,6 @@ export default function GuestsView({ guests: initial, events, preview }) {
     setForm({
       id: g.id,
       full_name: g.full_name,
-      email: g.email || "",
-      phone: g.phone || "",
       side: g.side || "both",
       plus_one: !!g.plus_one,
       dietary: [...(g.dietary || [])],
@@ -114,8 +110,6 @@ export default function GuestsView({ guests: initial, events, preview }) {
       [t("guests.side")]: t(`guests.sides.${g.side}`),
       [t("guests.plusOne")]: g.plus_one ? "✓" : "",
       [t("guests.dietary")]: (g.dietary || []).map((d) => t(`guests.diet.${d}`)).join(", "),
-      [t("guests.email")]: g.email || "",
-      [t("guests.phone")]: g.phone || "",
       [t("rsvp.title")]: scopedInvites(g)
         .map((i) => {
           const ev = eventById.get(i.event_id);
@@ -208,9 +202,6 @@ export default function GuestsView({ guests: initial, events, preview }) {
                         </Badge>
                       ))}
                     </div>
-                    <p className="truncate text-xs text-ink-500">
-                      {[g.email, g.phone].filter(Boolean).join(" · ") || "—"}
-                    </p>
                   </div>
                   <div className="hidden flex-wrap justify-end gap-1 sm:flex">
                     {scopedInvites(g).map((i) => {
@@ -352,16 +343,6 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
                 </option>
               ))}
             </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t("guests.email")}</label>
-            <input className="input" type="email" value={form.email} onChange={set("email")} />
-          </div>
-          <div>
-            <label className="label">{t("guests.phone")}</label>
-            <input className="input" value={form.phone} onChange={set("phone")} />
           </div>
         </div>
 
