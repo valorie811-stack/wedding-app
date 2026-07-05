@@ -6,7 +6,6 @@ import { pct } from "@/lib/format";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { setInvite, removeInvite } from "@/app/(app)/guests/actions";
-import ShareButton from "@/components/share/ShareButton";
 
 const CYCLE = ["confirmed", "pending", "declined"];
 const SYMBOL = { confirmed: "✓", pending: "?", declined: "✕" };
@@ -88,12 +87,6 @@ export default function RsvpView({ guests: initial, events, preview }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
-          <ShareButton
-            resource="rsvp"
-            label={t("rsvpForm.title")}
-            basePath="/rsvp-form"
-            noteKey="share.rsvpNote"
-          />
         </div>
       </div>
 

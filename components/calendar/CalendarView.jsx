@@ -6,7 +6,6 @@ import { WEDDINGS } from "@/lib/theme";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import ShareButton from "@/components/share/ShareButton";
 import EventForm, { blankEvent } from "@/components/calendar/EventForm";
 import TaskForm from "@/components/planning/TaskForm";
 import { saveEvent, deleteEvent } from "@/app/(app)/scheduler/actions";
@@ -308,7 +307,6 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
           <Button variant="outline" onClick={handleExport} title={t("calendar.exportHint")}>
             📅 {t("calendar.export")}
           </Button>
-          <ShareButton resource="schedule" label={t("calendar.title")} />
           <Button variant="gold" onClick={() => openNew()}>
             + {t("calendar.addEvent")}
           </Button>

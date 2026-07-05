@@ -1,10 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { LOCALES } from "@/lib/i18n";
 import { WEDDINGS } from "@/lib/theme";
-import { createClient } from "@/lib/supabase/client";
+import { signOutAction } from "@/app/login/actions";
 import { cx } from "@/lib/cx";
 import Countdown from "@/components/dashboard/Countdown";
 
@@ -35,12 +34,9 @@ function ScopeSwitcher() {
 
 export default function Topbar({ member, onMenu }) {
   const { t, locale, setLocale } = useApp();
-  const router = useRouter();
 
   async function signOut() {
-    const supabase = createClient();
-    if (supabase) await supabase.auth.signOut();
-    router.push("/login");
+    await signOutAction();
   }
 
   return (
@@ -83,7 +79,7 @@ export default function Topbar({ member, onMenu }) {
                 <p className="text-xs font-medium leading-tight text-ink-900">
                   {member.full_name}
                 </p>
-                <p className="text-[10px] leading-tight text-ink-400">{t(`roles.${member.role}`)}</p>
+                <p className="text-[10px] leading-tight text-ink-400">{t("common.signOut")}</p>
               </div>
               <button
                 onClick={signOut}
