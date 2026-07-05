@@ -1,48 +1,45 @@
 -- ============================================================================
--- Two Weddings — Phase 1 schema
+-- Two Weddings — single-owner schema
 -- Run this in the Supabase SQL Editor (Dashboard -> SQL -> New query).
 -- Safe to re-run: uses IF NOT EXISTS / CREATE OR REPLACE where possible.
+--
+-- Auth model: the app is a single-owner (bride & groom) tool unlocked by a
+-- shared PIN. There are no Supabase Auth users, members, roles, invites, or
+-- share links. All data access happens server-side with the SERVICE-ROLE key,
+-- so RLS is enabled on every table with NO policies (locked to the service
+-- role). Set SUPABASE_SERVICE_ROLE_KEY in the app environment.
 -- ============================================================================
 
 -- Needed for gen_random_uuid()
 create extension if not exists "pgcrypto";
 
 -- ----------------------------------------------------------------------------
--- Membership & roles  (couple = owner, everyone else invited)
+-- Remove legacy multi-user / sharing objects (idempotent).
+-- Dropping the helper functions with CASCADE also removes every RLS policy that
+-- referenced them (the old *_member_all / owner policies).
 -- ----------------------------------------------------------------------------
-create table if not exists members (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references auth.users (id) on delete cascade,
-  full_name   text,
-  role        text not null default 'family'
-              check (role in ('owner','planner','family','party','guest','vendor')),
-  locale      text not null default 'en' check (locale in ('en','vi','zh')),
-  created_at  timestamptz not null default now(),
-  unique (user_id)
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists handle_new_user() cascade;
+drop function if exists accept_invite() cascade;
+drop function if exists is_owner() cascade;
+drop function if exists is_member() cascade;
+
+drop table if exists share_otps cascade;
+drop table if exists shares cascade;
+drop table if exists invites cascade;
+drop table if exists members cascade;
+
+-- ----------------------------------------------------------------------------
+-- App settings: single row holding the hashed owner PIN. Touched only by the
+-- service-role client in server code. RLS on, no policies.
+-- ----------------------------------------------------------------------------
+create table if not exists app_settings (
+  id          smallint primary key default 1,
+  pin_hash    text,
+  pin_salt    text,
+  updated_at  timestamptz not null default now(),
+  constraint app_settings_singleton check (id = 1)
 );
-
--- Pending invitations (invite-based roles). Accepted when the invitee signs in.
-create table if not exists invites (
-  id          uuid primary key default gen_random_uuid(),
-  email       text not null,
-  role        text not null default 'family'
-              check (role in ('owner','planner','family','party','guest','vendor')),
-  token       text not null unique,
-  invited_by  uuid references auth.users (id) on delete set null,
-  accepted_at timestamptz,
-  created_at  timestamptz not null default now()
-);
-
--- Helper predicates used by RLS policies below.
-create or replace function is_member()
-returns boolean language sql security definer stable set search_path = public as $$
-  select exists (select 1 from members m where m.user_id = auth.uid());
-$$;
-
-create or replace function is_owner()
-returns boolean language sql security definer stable set search_path = public as $$
-  select exists (select 1 from members m where m.user_id = auth.uid() and m.role = 'owner');
-$$;
 
 -- ----------------------------------------------------------------------------
 -- Core data models: weddings, events, guests, vendors
@@ -153,7 +150,7 @@ create table if not exists tasks (
   created_at  timestamptz not null default now()
 );
 
--- Seating (Phase 3 Table Planner): tables per wedding + guest assignments.
+-- Seating (Table Planner): tables per wedding + guest assignments.
 create table if not exists seating_tables (
   id          uuid primary key default gen_random_uuid(),
   wedding_id  uuid references weddings (id) on delete cascade,
@@ -171,7 +168,7 @@ create table if not exists seating_assignments (
   unique (table_id, guest_id)
 );
 
--- Mood boards (Phase 3): image (URL) + colour swatches per board/wedding.
+-- Mood boards: image (URL) + colour swatches per board/wedding.
 create table if not exists moodboard_items (
   id          uuid primary key default gen_random_uuid(),
   wedding_id  uuid references weddings (id) on delete cascade, -- null = shared
@@ -184,7 +181,7 @@ create table if not exists moodboard_items (
   created_at  timestamptz not null default now()
 );
 
--- Attire (Phase 3): outfit ideas per role + wedding, confirmed/inspiration.
+-- Attire: outfit ideas per role + wedding, confirmed/inspiration.
 create table if not exists attire_items (
   id          uuid primary key default gen_random_uuid(),
   wedding_id  uuid references weddings (id) on delete cascade,
@@ -201,143 +198,19 @@ create table if not exists attire_items (
 
 -- ----------------------------------------------------------------------------
 -- Row Level Security
--- Phase 1: any signed-in member of the workspace can read/write planning data.
--- Member/role administration is restricted to the owner. Finer per-role views
--- (family / bridal party / vendor) arrive with Phase 4 access control.
+-- Every table has RLS enabled with NO policies. The service-role key (used by
+-- the server) bypasses RLS; the anon/authenticated roles have no access. This
+-- keeps the database locked while the app talks to it server-side only.
 -- ----------------------------------------------------------------------------
-alter table members      enable row level security;
-alter table invites      enable row level security;
-alter table weddings     enable row level security;
-alter table events       enable row level security;
-alter table guests       enable row level security;
-alter table guest_events enable row level security;
-alter table vendors      enable row level security;
-alter table budget_categories enable row level security;
-alter table budget_items enable row level security;
-alter table tasks        enable row level security;
-alter table seating_tables enable row level security;
-alter table seating_assignments enable row level security;
-alter table moodboard_items enable row level security;
-alter table attire_items enable row level security;
-
--- members: everyone in the workspace can see the roster; only owner manages it.
-drop policy if exists members_select on members;
-create policy members_select on members for select to authenticated using (is_member());
-drop policy if exists members_self_insert on members;
-drop policy if exists members_owner_manage on members;
-create policy members_owner_manage on members for update to authenticated using (is_owner());
-drop policy if exists members_owner_delete on members;
-create policy members_owner_delete on members for delete to authenticated using (is_owner());
-
--- invites: owner only.
-drop policy if exists invites_owner_all on invites;
-create policy invites_owner_all on invites for all to authenticated using (is_owner()) with check (is_owner());
-
--- Generic member read/write for the planning tables.
 do $$
 declare tbl text;
 begin
-  foreach tbl in array array['weddings','events','guests','guest_events','vendors','budget_categories','budget_items','tasks','seating_tables','seating_assignments','moodboard_items','attire_items']
+  foreach tbl in array array[
+    'app_settings','weddings','events','guests','guest_events','vendors',
+    'budget_categories','budget_items','tasks','seating_tables',
+    'seating_assignments','moodboard_items','attire_items'
+  ]
   loop
-    execute format('drop policy if exists %I_member_all on %I;', tbl, tbl);
-    execute format(
-      'create policy %I_member_all on %I for all to authenticated using (is_member()) with check (is_member());',
-      tbl, tbl);
+    execute format('alter table %I enable row level security;', tbl);
   end loop;
 end $$;
-
--- ----------------------------------------------------------------------------
--- First sign-in bootstrap: the very first authenticated user becomes the owner.
--- After that, new users join via the invites flow (handled in app code).
--- ----------------------------------------------------------------------------
-create or replace function handle_new_user()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  if not exists (select 1 from members) then
-    insert into members (user_id, full_name, role)
-    values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.email), 'owner');
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function handle_new_user();
-
--- ----------------------------------------------------------------------------
--- Invite acceptance: called by the app after sign-in (SECURITY DEFINER).
--- Assigns the invited role server-side; a user can never choose their own role.
--- ----------------------------------------------------------------------------
-create or replace function accept_invite()
-returns text language plpgsql security definer set search_path = public as $$
-declare inv record;
-begin
-  if exists (select 1 from members where user_id = auth.uid()) then
-    return (select role from members where user_id = auth.uid());
-  end if;
-  select id, role into inv
-  from invites
-  where lower(email) = lower(auth.email()) and accepted_at is null
-  order by created_at
-  limit 1;
-  if inv.id is null then
-    return null;
-  end if;
-  insert into members (user_id, full_name, role) values (auth.uid(), auth.email(), inv.role);
-  update invites set accepted_at = now() where id = inv.id;
-  return inv.role;
-end $$;
-
-revoke all on function accept_invite() from public;
-grant execute on function accept_invite() to authenticated;
-
--- ----------------------------------------------------------------------------
--- Sharing MVP (Phase 2): token-gated read-only links.
--- A signed-in member creates a share for a resource (+ optional wedding scope)
--- and an optional expiry. The public /share/[token] route reads it with the
--- service-role key (bypassing RLS); members manage their own shares here.
--- ----------------------------------------------------------------------------
-create table if not exists shares (
-  id          uuid primary key default gen_random_uuid(),
-  token       text not null unique,
-  resource    text not null
-              check (resource in ('guests','vendors','schedule','budget','rsvp')),
-  scope       text not null default 'BOTH' check (scope in ('BOTH','HP','KK')),
-  label       text,
-  otp_required boolean not null default false,
-  created_by  uuid references auth.users (id) on delete set null,
-  expires_at  timestamptz,
-  revoked_at  timestamptz,
-  created_at  timestamptz not null default now()
-);
-
-create index if not exists shares_token_idx on shares (token);
-
--- Add the column on older installs.
-alter table shares add column if not exists otp_required boolean not null default false;
-
--- One-time codes for email-gated share links. Accessed only via the service
--- role in server actions, so RLS is enabled with no policies (locked to anon).
-create table if not exists share_otps (
-  id          uuid primary key default gen_random_uuid(),
-  token       text not null,
-  email       text not null,
-  code        text not null,
-  expires_at  timestamptz not null,
-  created_at  timestamptz not null default now()
-);
-create index if not exists share_otps_lookup on share_otps (token, email);
-alter table share_otps enable row level security;
-
-alter table shares enable row level security;
-
--- Members manage shares; the public route never uses this client (service role).
-drop policy if exists shares_member_all on shares;
-create policy shares_member_all on shares
-  for all to authenticated using (is_member()) with check (is_member());
-
--- Allow the 'rsvp' resource on older installs (constraint added before it existed).
-alter table shares drop constraint if exists shares_resource_check;
-alter table shares add constraint shares_resource_check
-  check (resource in ('guests','vendors','schedule','budget','rsvp'));

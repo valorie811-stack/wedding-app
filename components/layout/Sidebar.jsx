@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MODULES, SECTIONS } from "@/lib/modules";
-import { canAccess } from "@/lib/auth/roles";
 import { useApp } from "@/context/AppContext";
 import { cx } from "@/lib/cx";
 
-export default function Sidebar({ role = "owner", open = false, onClose }) {
+export default function Sidebar({ open = false, onClose }) {
   const pathname = usePathname();
   const { t } = useApp();
 
-  const visible = MODULES.filter((m) => canAccess(role, m.key));
+  const visible = MODULES;
 
   return (
     <>

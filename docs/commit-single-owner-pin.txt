@@ -1,0 +1,28 @@
+feat(auth)!: single-owner PIN login; drop magic-link, roles & link sharing
+
+Replace the multi-user, magic-link app with a single-owner tool the couple
+unlock with one shared PIN.
+
+- Auth: PIN setup/unlock (scrypt hash in new app_settings table), signed
+  httpOnly session cookie (Web Crypto, Edge-safe), PIN guard in proxy.js.
+  Add lib/auth/{pin,session}.js, components/auth/PinForm.jsx,
+  app/login/actions.js. Remove magic-link login, /auth/callback.
+- Data: route all server DB access through the service-role key so cloud
+  data works behind the PIN (lib/supabase/server.js). getCurrentMember now
+  returns a fixed owner; getMembersData removed.
+- Single owner: remove roles/members/invites, is_member() RLS, and the
+  Settings->Access page. Settings becomes change-PIN + sign-out. Sidebar/
+  AppShell no longer gate by role.
+- Sharing: delete /share and /rsvp-form routes, ShareButton, QR, WhatsApp,
+  and the email-OTP gate. RSVPs are entered in-app. Keep Excel/CSV/PDF
+  static exports (ExportButton).
+- Schema: add app_settings; drop members/invites/shares/share_otps and the
+  is_member/is_owner/accept_invite/handle_new_user helpers; RLS enabled with
+  no policies (locked to service role). Idempotent.
+- Docs/env/i18n: rewrite README and .env.local.example
+  (SUPABASE_SERVICE_ROLE_KEY + APP_SESSION_SECRET now required); update
+  EN/VI/ZH strings.
+
+BREAKING CHANGE: requires SUPABASE_SERVICE_ROLE_KEY and APP_SESSION_SECRET,
+and a re-run of supabase/schema.sql. Existing members/invites/shares data is
+dropped. Guest self-service RSVP is removed.
