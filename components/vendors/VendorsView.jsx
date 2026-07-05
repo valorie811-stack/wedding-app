@@ -10,7 +10,6 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveVendor, deleteVendor } from "@/app/(app)/vendors/actions";
-import ShareButton from "@/components/share/ShareButton";
 import ExportButton from "@/components/share/ExportButton";
 
 const STATUSES = ["enquiry", "quoted", "booked", "paid", "cancelled"];
@@ -137,7 +136,6 @@ export default function VendorsView({ vendors: initial, preview }) {
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
           <ExportButton getRows={exportRows} filename="vendor-list" sheetName={t("vendors.title")} />
-          <ShareButton resource="vendors" label={t("vendors.title")} />
           <Button variant="gold" onClick={openNew}>
             + {t("vendors.addVendor")}
           </Button>

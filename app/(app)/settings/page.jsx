@@ -1,11 +1,8 @@
-import { getMembersData } from "@/lib/data";
 import SettingsView from "@/components/settings/SettingsView";
+import { isAdminConfigured } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
-  const { members, invites, currentRole, preview } = await getMembersData();
-  return (
-    <SettingsView members={members} invites={invites} currentRole={currentRole} preview={preview} />
-  );
+export default function SettingsPage() {
+  return <SettingsView canPersist={isAdminConfigured} />;
 }

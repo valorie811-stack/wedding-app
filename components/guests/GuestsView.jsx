@@ -8,7 +8,6 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveGuest, deleteGuest } from "@/app/(app)/guests/actions";
-import ShareButton from "@/components/share/ShareButton";
 import ExportButton from "@/components/share/ExportButton";
 
 const DIET_OPTIONS = ["halal", "vegetarian", "vegan", "gluten-free"];
@@ -136,7 +135,6 @@ export default function GuestsView({ guests: initial, events, preview }) {
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
           <ExportButton getRows={exportRows} filename="guest-list" sheetName={t("guests.title")} />
-          <ShareButton resource="guests" label={t("guests.title")} />
           <Button variant="gold" onClick={openNew}>
             + {t("guests.addGuest")}
           </Button>
