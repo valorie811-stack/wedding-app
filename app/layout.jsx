@@ -1,4 +1,5 @@
 import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppProvider } from "@/context/AppContext";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
       <body className="font-sans antialiased text-ink-900">
         <AppProvider>{children}</AppProvider>
         <ServiceWorkerRegister />
+        <SpeedInsights />
       </body>
     </html>
   );
