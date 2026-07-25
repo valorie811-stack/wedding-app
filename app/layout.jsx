@@ -2,7 +2,6 @@ import "./globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppProvider } from "@/context/AppContext";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
   title: "Two Weddings — Planner",
