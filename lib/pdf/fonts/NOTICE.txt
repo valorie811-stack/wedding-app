@@ -1,0 +1,9 @@
+Noto Sans (Regular + Bold), subset to Latin + Vietnamese for PDF export.
+
+Font: Noto Sans — Copyright The Noto Project Authors (https://github.com/notofonts/noto-fonts)
+License: SIL Open Font License, Version 1.1 (https://scripts.sil.org/OFL)
+
+These .ttf files are subsets (Basic Latin, Latin-1 Supplement, Latin Extended-A/B,
+Latin Extended Additional / Vietnamese, General Punctuation, Currency Symbols) with
+OpenType layout features stripped, produced with fonttools/pyftsubset. The OFL permits
+bundling, modification, and redistribution as part of this software.
