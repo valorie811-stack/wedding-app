@@ -130,8 +130,8 @@ export default function VendorsView({ vendors: initial, preview }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("vendors.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("vendors.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("vendors.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("vendors.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
@@ -178,7 +178,7 @@ export default function VendorsView({ vendors: initial, preview }) {
       {visible.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="py-8 text-center text-sm text-ink-400">{t("vendors.noVendors")}</p>
+            <p className="py-8 text-center text-sm text-stone-400">{t("vendors.noVendors")}</p>
           </CardBody>
         </Card>
       ) : (
@@ -196,10 +196,10 @@ export default function VendorsView({ vendors: initial, preview }) {
 
 function Stat({ label, value, tone = "ink" }) {
   const color =
-    tone === "kk" ? "text-kk-700" : tone === "gold" ? "text-gold-700" : "text-ink-900";
+    tone === "kk" ? "text-kk-700" : tone === "gold" ? "text-gold-700" : "text-stone-900";
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
     </div>
   );
@@ -214,8 +214,8 @@ function VendorCard({ v, t, onEdit, onDelete }) {
       <CardBody className="flex flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="truncate font-semibold text-ink-900">{v.name}</h3>
-            <p className="text-xs text-ink-500">{v.category || "—"}</p>
+            <h3 className="truncate font-semibold text-stone-900">{v.name}</h3>
+            <p className="text-xs text-stone-500">{v.category || "—"}</p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <Badge tone={v.code === "HP" ? "hp" : "kk"}>{v.code}</Badge>
@@ -224,7 +224,7 @@ function VendorCard({ v, t, onEdit, onDelete }) {
         </div>
 
         {/* Contact */}
-        <div className="space-y-0.5 text-xs text-ink-600">
+        <div className="space-y-0.5 text-xs text-stone-600">
           {v.contact_name && <p>👤 {v.contact_name}</p>}
           {v.email && <p className="truncate">✉️ {v.email}</p>}
           {v.phone && <p>📞 {v.phone}</p>}
@@ -233,14 +233,14 @@ function VendorCard({ v, t, onEdit, onDelete }) {
         {/* Payment progress */}
         <div>
           <div className="mb-1 flex items-baseline justify-between text-xs">
-            <span className="text-ink-500">{t("vendors.paymentProgress")}</span>
-            <span className="text-ink-600">{paidPct}%</span>
+            <span className="text-stone-500">{t("vendors.paymentProgress")}</span>
+            <span className="text-stone-600">{paidPct}%</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-ink-100">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
             <div className="h-full rounded-full bg-kk-500" style={{ width: `${Math.min(100, paidPct)}%` }} />
           </div>
           <div className="mt-1.5 flex justify-between text-xs">
-            <span className="text-ink-500">
+            <span className="text-stone-500">
               {formatMoney(v.deposit_paid, currency)} / {formatMoney(v.total_cost, currency)}
             </span>
             <span className="font-medium text-gold-700">
@@ -254,18 +254,18 @@ function VendorCard({ v, t, onEdit, onDelete }) {
             <Badge tone="green">✓ {t("vendors.halalCertified")}</Badge>
           </div>
         )}
-        {v.notes && <p className="text-xs italic text-ink-500">{v.notes}</p>}
+        {v.notes && <p className="text-xs italic text-stone-500">{v.notes}</p>}
 
         <div className="mt-auto flex justify-end gap-1 pt-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
           <button
             onClick={() => onEdit(v)}
-            className="rounded-lg px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-700"
+            className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
           >
             ✎ {t("common.edit")}
           </button>
           <button
             onClick={() => onDelete(v)}
-            className="rounded-lg px-2 py-1 text-xs text-ink-500 hover:bg-red-50 hover:text-red-600"
+            className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"
           >
             🗑 {t("common.delete")}
           </button>
@@ -366,10 +366,10 @@ function VendorForm({ form, setForm, onSave, onClose, t }) {
           <label className="label">{t("vendors.notes")}</label>
           <textarea className="input min-h-[4rem]" value={form.notes} onChange={set("notes")} />
         </div>
-        <label className="flex items-center gap-2 text-sm text-ink-700">
+        <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-ink-300 text-kk-600"
+            className="h-4 w-4 rounded border-stone-300 text-kk-600"
             checked={form.is_halal_certified}
             onChange={(e) => setForm((f) => ({ ...f, is_halal_certified: e.target.checked }))}
           />

@@ -72,8 +72,8 @@ export default function AttireView({ items: initial, preview }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("attire.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("attire.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("attire.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("attire.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
@@ -84,13 +84,13 @@ export default function AttireView({ items: initial, preview }) {
       {visible.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="py-10 text-center text-sm text-ink-400">{t("attire.noItems")}</p>
+            <p className="py-10 text-center text-sm text-stone-400">{t("attire.noItems")}</p>
           </CardBody>
         </Card>
       ) : (
         byRole.map(({ role, list }) => (
           <section key={role} className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-ink-800">{t(`attire.roles.${role}`)}</h2>
+            <h2 className="font-serif text-lg font-semibold text-stone-800">{t(`attire.roles.${role}`)}</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {list.map((a) => (
                 <Card key={a.id} className="group overflow-hidden">
@@ -105,20 +105,20 @@ export default function AttireView({ items: initial, preview }) {
                       }}
                     />
                   ) : (
-                    <div className="grid h-56 w-full place-items-center bg-ink-100 text-3xl">👗</div>
+                    <div className="grid h-56 w-full place-items-center bg-stone-100 text-3xl">👗</div>
                   )}
                   <CardBody className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-medium text-ink-900">{a.title || "—"}</h3>
+                      <h3 className="font-medium text-stone-900">{a.title || "—"}</h3>
                       {a.code && <Badge tone={a.code === "HP" ? "hp" : "kk"}>{a.code}</Badge>}
                     </div>
                     <Badge tone={a.status === "confirmed" ? "green" : "neutral"}>
                       {t(`attire.statuses.${a.status}`)}
                     </Badge>
-                    {a.notes && <p className="text-xs text-ink-500">{a.notes}</p>}
+                    {a.notes && <p className="text-xs text-stone-500">{a.notes}</p>}
                     <div className="flex justify-end gap-1 pt-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                      <button onClick={() => openEdit(a)} className="rounded-lg px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-700">✎ {t("common.edit")}</button>
-                      <button onClick={() => handleDelete(a)} className="rounded-lg px-2 py-1 text-xs text-ink-500 hover:bg-red-50 hover:text-red-600">🗑 {t("common.delete")}</button>
+                      <button onClick={() => openEdit(a)} className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700">✎ {t("common.edit")}</button>
+                      <button onClick={() => handleDelete(a)} className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600">🗑 {t("common.delete")}</button>
                     </div>
                   </CardBody>
                 </Card>

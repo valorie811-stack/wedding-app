@@ -3,23 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f6f7fb;
-  /* System font stacks — cover Latin, Vietnamese and CJK without a network
-     font fetch. Swap for next/font or a hosted webfont later if desired. */
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
-    Arial, sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman",
-    "Noto Serif SC", serif;
+  /* Surfaces */
+  --page: #fbfbfa;
+  --card: #ffffff;
+  --sunken: #f1f1ef;
+  --block: #edf3ec;
+  --hairline: #e9e9e7;
+
+  /* --font-mono and --font-sans are injected by next/font in app/layout.jsx.
+     The fallbacks below keep the page readable if that ever fails to load. */
+  --font-mono-fallback: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans-fallback: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-html, body {
+html,
+body {
   height: 100%;
 }
 
 body {
-  background: var(--bg);
-  color: theme("colors.ink.900");
+  background: var(--page);
+  color: theme("colors.stone.900");
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -27,23 +31,75 @@ body {
 /* Thin, unobtrusive scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: theme("colors.ink.300") transparent;
+  scrollbar-color: theme("colors.stone.300") transparent;
 }
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: theme("colors.ink.300"); border-radius: 9999px; }
-*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: theme("colors.stone.300");
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-/* Reusable component classes */
 @layer components {
+  /* Surfaces
+     The matcha look is flat: hairline borders carry separation, not shadow. */
   .card {
-    @apply rounded-2xl bg-white shadow-card border border-ink-100;
+    @apply rounded-xl2 bg-white border border-stone-200;
   }
-  .input {
-    @apply w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900
-           placeholder:text-ink-400 outline-none transition
-           focus:border-ink-400 focus:ring-2 focus:ring-ink-200;
+
+  /* The signature pale mint panel from the template. Used for section headers,
+     callouts, and any block that should read as "grouped". */
+  .block {
+    @apply rounded-lg bg-matcha-100 px-3 py-2;
   }
+
+  /* Typography
+     Chrome is mono with wide tracking; user content stays sans so Vietnamese
+     and Chinese render with proper glyph coverage and rhythm. */
+  .chrome {
+    @apply font-mono tracking-chrome;
+  }
+
+  .content {
+    @apply font-sans;
+  }
+
+  /* Section heading, as seen on "Remember" / "Goals" / "Brain dump". */
+  .section-title {
+    @apply block rounded-lg bg-matcha-100 px-3 py-1.5
+           font-mono text-sm font-medium tracking-chrome text-matcha-700;
+  }
+
   .label {
-    @apply block text-xs font-medium uppercase tracking-wide text-ink-500 mb-1.5;
+    @apply block font-mono text-[11px] font-medium uppercase tracking-chrome text-stone-500 mb-1.5;
+  }
+
+  /* Controls */
+  .input {
+    @apply w-full rounded-lg border border-stone-200 bg-white px-3.5 py-2.5
+           font-sans text-sm text-stone-900 placeholder:text-stone-400
+           outline-none transition
+           focus:border-matcha-400 focus:ring-2 focus:ring-matcha-100;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-stone-200
+           bg-white px-3.5 py-2 font-mono text-sm tracking-chrome text-stone-800
+           transition hover:bg-stone-50 active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matcha-200;
+  }
+
+  .btn-primary {
+    @apply border-matcha-600 bg-matcha-600 text-white hover:bg-matcha-700 hover:border-matcha-700;
+  }
+
+  /* Numerals — budgets, counts, countdowns. Tabular so columns align. */
+  .numeric {
+    @apply font-mono tabular-nums tracking-chrome;
   }
 }

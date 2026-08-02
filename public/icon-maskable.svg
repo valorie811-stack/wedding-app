@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="gm" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#be123c"/>
-      <stop offset="1" stop-color="#0d9488"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" fill="url(#gm)"/>
-  <g transform="translate(51.2,51.2) scale(0.8)">
-    <circle cx="214" cy="312" r="84" fill="none" stroke="#d4af37" stroke-width="22"/>
-    <circle cx="298" cy="312" r="84" fill="none" stroke="#fcd34d" stroke-width="22"/>
-    <path d="M256 132 l20 40 44 6 -32 31 8 44 -40 -22 -40 22 8 -44 -32 -31 44 -6z" fill="#fde68a"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><defs><filter id="r" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="4" seed="9" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter></defs><rect width="512" height="512" rx="102" fill="#EDF3EC"/><g filter="url(#r)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M100.76 160.2 h134.48" stroke="#B0503D" stroke-width="10.7"/><path d="M168.0 160.2 v32.8" stroke="#B0503D" stroke-width="10.7"/><path d="M122.08 193.0 h91.83999999999999" stroke="#B0503D" stroke-width="10.7"/><path d="M125.36 211.04 h85.28 v39.36 h-85.28 z" stroke="#B0503D" stroke-width="10.7"/><path d="M146.68 266.8 l-13.12 21.32" stroke="#B0503D" stroke-width="10.7"/><path d="M189.32 266.8 l13.12 21.32" stroke="#B0503D" stroke-width="10.7"/><path d="M90.92 304.52 h154.16" stroke="#B0503D" stroke-width="10.7"/><path d="M110.6 325.84000000000003 h114.8 v49.199999999999996 h-114.8 z" stroke="#B0503D" stroke-width="10.7"/><path d="M294.76 160.2 h134.48" stroke="#2F6E7A" stroke-width="10.7"/><path d="M362.0 160.2 v32.8" stroke="#2F6E7A" stroke-width="10.7"/><path d="M316.08 193.0 h91.83999999999999" stroke="#2F6E7A" stroke-width="10.7"/><path d="M319.36 211.04 h85.28 v39.36 h-85.28 z" stroke="#2F6E7A" stroke-width="10.7"/><path d="M340.68 266.8 l-13.12 21.32" stroke="#2F6E7A" stroke-width="10.7"/><path d="M383.32 266.8 l13.12 21.32" stroke="#2F6E7A" stroke-width="10.7"/><path d="M284.92 304.52 h154.16" stroke="#2F6E7A" stroke-width="10.7"/><path d="M304.6 325.84000000000003 h114.8 v49.199999999999996 h-114.8 z" stroke="#2F6E7A" stroke-width="10.7"/></g></svg>

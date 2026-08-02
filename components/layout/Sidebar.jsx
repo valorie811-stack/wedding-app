@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { MODULES, SECTIONS } from "@/lib/modules";
 import { useApp } from "@/context/AppContext";
 import { cx } from "@/lib/cx";
+import Icon from "@/components/ui/Icon";
 
 export default function Sidebar({ open = false, onClose }) {
   const pathname = usePathname();
@@ -17,7 +18,7 @@ export default function Sidebar({ open = false, onClose }) {
       {/* Mobile backdrop */}
       <div
         className={cx(
-          "fixed inset-0 z-30 bg-ink-900/40 transition-opacity lg:hidden",
+          "fixed inset-0 z-30 bg-stone-900/30 transition-opacity lg:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={onClose}
@@ -25,19 +26,24 @@ export default function Sidebar({ open = false, onClose }) {
 
       <aside
         className={cx(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-ink-100 bg-white",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-stone-200 bg-white",
           "transition-transform lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Brand */}
+        {/* Brand — the single 喜 mark, since 囍 is unreadable at this size */}
         <div className="flex items-center gap-2.5 px-5 py-5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-hp-600 to-kk-600 text-base">
-            💍
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-matcha-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mark.svg" alt="" width={20} height={20} aria-hidden="true" />
           </span>
           <div className="leading-tight">
-            <p className="font-serif text-base font-semibold text-ink-900">{t("app.name")}</p>
-            <p className="text-[10px] text-ink-400">🇻🇳 HP · 🇲🇾 KK · 2027</p>
+            <p className="font-mono text-sm font-medium tracking-chrome text-stone-900">
+              {t("app.name")}
+            </p>
+            <p className="font-mono text-[10px] tracking-chrome text-stone-400">
+              HP · KK · 2027
+            </p>
           </div>
         </div>
 
@@ -47,7 +53,7 @@ export default function Sidebar({ open = false, onClose }) {
             if (!items.length) return null;
             return (
               <div key={section.key} className="mb-4">
-                <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-400">
+                <p className="px-2 pb-1.5 font-mono text-[10px] font-medium uppercase tracking-chrome text-stone-400">
                   {t(section.i18n)}
                 </p>
                 <ul className="space-y-0.5">
@@ -59,13 +65,21 @@ export default function Sidebar({ open = false, onClose }) {
                           href={m.route}
                           onClick={onClose}
                           className={cx(
-                            "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition",
+                            "group flex items-center gap-2.5 rounded-lg px-2.5 py-2",
+                            "font-mono text-[13px] tracking-chrome transition",
                             active
-                              ? "bg-ink-900 text-white"
-                              : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
+                              ? "bg-matcha-100 text-matcha-700"
+                              : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
                           )}
                         >
-                          <span className="text-base">{m.icon}</span>
+                          <Icon
+                            name={m.key}
+                            size={18}
+                            className={cx(
+                              "shrink-0 transition-colors",
+                              active ? "text-matcha-600" : "text-stone-400 group-hover:text-stone-600"
+                            )}
+                          />
                           <span className="flex-1 truncate">{t(`nav.${m.key}`)}</span>
                         </Link>
                       </li>

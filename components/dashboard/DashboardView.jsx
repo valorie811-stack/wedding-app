@@ -37,9 +37,9 @@ export default function DashboardView({ source, preview }) {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("dashboard.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
-            {t("scope.viewing")}: <span className="font-medium text-ink-700">{scopeLabel}</span>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("dashboard.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">
+            {t("scope.viewing")}: <span className="font-medium text-stone-700">{scopeLabel}</span>
           </p>
         </div>
         {preview && (
@@ -110,17 +110,17 @@ export default function DashboardView({ source, preview }) {
         <Card>
           <CardHeader title={t("dashboard.nextEvents")} />
           <CardBody className="pt-0">
-            <ul className="divide-y divide-ink-100">
+            <ul className="divide-y divide-stone-100">
               {d.upcoming.map((e, i) => {
                 const w = WEDDINGS[e.code];
                 return (
                   <li key={i} className="flex items-center gap-3 py-3">
                     <span className="text-lg">{w?.flag}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink-900">
+                      <p className="truncate text-sm font-medium text-stone-900">
                         {e.name?.[locale] || e.name?.en}
                       </p>
-                      <p className="text-xs text-ink-500">{fmtDate(e.date, locale)}</p>
+                      <p className="text-xs text-stone-500">{fmtDate(e.date, locale)}</p>
                     </div>
                     {e.halal && <Badge tone="green">Halal</Badge>}
                     <Badge tone={e.code === "HP" ? "hp" : "kk"}>{e.code}</Badge>
@@ -135,19 +135,19 @@ export default function DashboardView({ source, preview }) {
           <CardHeader title={t("dashboard.upcomingTasks")} />
           <CardBody className="pt-0">
             {d.tasks.open.length === 0 ? (
-              <p className="py-6 text-center text-sm text-ink-400">{t("dashboard.noTasks")}</p>
+              <p className="py-6 text-center text-sm text-stone-400">{t("dashboard.noTasks")}</p>
             ) : (
-              <ul className="divide-y divide-ink-100">
+              <ul className="divide-y divide-stone-100">
                 {d.tasks.open.map((task, i) => (
                   <li key={i} className="flex items-center gap-3 py-3">
                     <span
                       className={`h-2 w-2 shrink-0 rounded-full ${
-                        task.status === "in_progress" ? "bg-gold-500" : "bg-ink-300"
+                        task.status === "in_progress" ? "bg-gold-500" : "bg-stone-300"
                       }`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-ink-800">{task.title}</p>
-                      <p className="text-xs text-ink-500">
+                      <p className="truncate text-sm text-stone-800">{task.title}</p>
+                      <p className="text-xs text-stone-500">
                         {fmtDate(task.due, locale)}
                         {task.assignee ? ` · ${task.assignee}` : ""}
                       </p>

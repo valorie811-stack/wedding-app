@@ -1,17 +1,60 @@
 // PDF documents for branded run sheet + budget snapshot, using
 // @react-pdf/renderer. Rendered server-side via renderToBuffer in the API route.
-// NOTE: text is English only — @react-pdf's built-in Helvetica has no Vietnamese
-// or CJK glyphs. Registering a Unicode font (Phase 5 polish) would enable VI/ZH.
+// NOTE: Vietnamese text (e.g. "Hải Phòng", "mâm quả") requires a Unicode font.
+// @react-pdf's built-in Helvetica is a standard PDF font limited to WinAnsi/Latin-1
+// and has no Vietnamese glyphs, so we register a bundled Noto Sans subset (Latin +
+// Vietnamese) below. Chinese (ZH) is still unsupported — that would need a CJK font.
 //
 // The renderer primitives are imported lazily (await import) inside each builder so
 // the heavy @react-pdf/renderer lib is only loaded when a PDF is actually requested —
 // matching how resend / qr / xlsx are loaded on demand elsewhere in the app.
 
-const C = { ink: "#0f172a", sub: "#64748b", line: "#e2e8f0", gold: "#b8860b", kk: "#0d9488" };
+// @react-pdf/renderer takes plain hex in its StyleSheet objects, so colour is
+// pulled from the shared token module rather than written by hand here.
+import tokens from "@/lib/tokens";
+
+const C = {
+  ink: tokens.stone[900],
+  sub: tokens.stone[600],
+  line: tokens.stone[200],
+  gold: tokens.gold[600],
+  kk: tokens.kk[600],
+  hp: tokens.hp[600],
+  matcha: tokens.matcha[600],
+};
+
+// Font family used for all PDF text. Registered once per process from bundled TTFs.
+const FONT = "Noto Sans";
+let fontsRegistered = false;
+
+// Register the bundled Noto Sans subset (Regular 400 + Bold 700) with @react-pdf.
+// Fonts are read from disk as base64 data URLs so registration never depends on
+// react-pdf resolving a runtime path. The files live at lib/pdf/fonts/ and are
+// force-included in the serverless bundle via outputFileTracingIncludes (next.config).
+async function ensureFonts(Font) {
+  if (fontsRegistered) return;
+  const [{ default: fs }, { default: path }] = await Promise.all([
+    import("node:fs"),
+    import("node:path"),
+  ]);
+  const dir = path.join(process.cwd(), "lib", "pdf", "fonts");
+  const dataUrl = (file) =>
+    `data:font/ttf;base64,${fs.readFileSync(path.join(dir, file)).toString("base64")}`;
+  Font.register({
+    family: FONT,
+    fonts: [
+      { src: dataUrl("NotoSans-Regular.ttf"), fontWeight: 400 },
+      { src: dataUrl("NotoSans-Bold.ttf"), fontWeight: 700 },
+    ],
+  });
+  // Vietnamese words must never be broken across lines by the hyphenation engine.
+  Font.registerHyphenationCallback((word) => [word]);
+  fontsRegistered = true;
+}
 
 function buildStyles(StyleSheet) {
   return StyleSheet.create({
-    page: { padding: 40, fontSize: 10, color: C.ink, fontFamily: "Helvetica" },
+    page: { padding: 40, fontSize: 10, color: C.ink, fontFamily: FONT },
     brand: { fontSize: 9, color: C.gold, marginBottom: 2, letterSpacing: 1 },
     h1: { fontSize: 20, marginBottom: 2 },
     sub: { fontSize: 10, color: C.sub, marginBottom: 18 },
@@ -27,7 +70,7 @@ function buildStyles(StyleSheet) {
     code: { width: 32, textAlign: "right", color: C.sub },
     num: { width: 90, textAlign: "right" },
     totalRow: { flexDirection: "row", paddingTop: 6, marginTop: 2, borderTopWidth: 1, borderTopColor: C.ink },
-    bold: { fontFamily: "Helvetica-Bold" },
+    bold: { fontFamily: FONT, fontWeight: 700 },
     footer: { position: "absolute", bottom: 24, left: 40, right: 40, fontSize: 8, color: C.sub, textAlign: "center" },
   });
 }
@@ -49,7 +92,8 @@ const money = (n, cur) => {
 };
 
 export async function RunSheetDoc({ events = [], tasks = [], scope = "BOTH", generatedAt }) {
-  const { Document, Page, View, Text, StyleSheet } = await import("@react-pdf/renderer");
+  const { Document, Page, View, Text, StyleSheet, Font } = await import("@react-pdf/renderer");
+  await ensureFonts(Font);
   const s = buildStyles(StyleSheet);
 
   const inScope = (code) => scope === "BOTH" || code === scope;
@@ -124,7 +168,8 @@ export async function RunSheetDoc({ events = [], tasks = [], scope = "BOTH", gen
 }
 
 export async function BudgetDoc({ weddings = [], totals = {}, generatedAt }) {
-  const { Document, Page, View, Text, StyleSheet } = await import("@react-pdf/renderer");
+  const { Document, Page, View, Text, StyleSheet, Font } = await import("@react-pdf/renderer");
+  await ensureFonts(Font);
   const s = buildStyles(StyleSheet);
 
   return (

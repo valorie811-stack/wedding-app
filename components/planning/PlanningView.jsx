@@ -11,7 +11,7 @@ import TaskForm from "@/components/planning/TaskForm";
 
 const COLUMNS = ["todo", "in_progress", "done"];
 const COL_ACCENT = {
-  todo: "border-t-ink-300",
+  todo: "border-t-stone-300",
   in_progress: "border-t-gold-400",
   done: "border-t-kk-400",
 };
@@ -128,8 +128,8 @@ export default function PlanningView({ tasks: initial, preview }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("planning.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("planning.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("planning.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("planning.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
@@ -149,13 +149,13 @@ export default function PlanningView({ tasks: initial, preview }) {
             }}
             onDragLeave={() => setOverCol((c) => (c === col ? null : c))}
             onDrop={() => onDrop(col)}
-            className={`rounded-2xl border-t-4 bg-ink-50/60 p-3 transition ${COL_ACCENT[col]} ${
+            className={`rounded-2xl border-t-4 bg-stone-50/60 p-3 transition ${COL_ACCENT[col]} ${
               overCol === col ? "ring-2 ring-gold-300" : ""
             }`}
           >
             <div className="mb-3 flex items-center justify-between px-1">
-              <h2 className="text-sm font-semibold text-ink-700">{t(`planning.columns.${col}`)}</h2>
-              <span className="rounded-full bg-ink-200 px-2 py-0.5 text-xs font-medium text-ink-600">
+              <h2 className="text-sm font-semibold text-stone-700">{t(`planning.columns.${col}`)}</h2>
+              <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-medium text-stone-600">
                 {columns[col].length}
               </span>
             </div>
@@ -177,14 +177,14 @@ export default function PlanningView({ tasks: initial, preview }) {
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-ink-800">{task.title}</p>
+                      <p className="text-sm font-medium text-stone-800">{task.title}</p>
                       {w ? (
                         <Badge tone={task.code === "HP" ? "hp" : "kk"}>{task.code}</Badge>
                       ) : (
                         <Badge tone="gold">↔</Badge>
                       )}
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
                       {task.due && (
                         <span className={overdue ? "font-medium text-red-600" : ""}>
                           📅 {fmtDate(task.due, locale)}
@@ -193,11 +193,11 @@ export default function PlanningView({ tasks: initial, preview }) {
                       )}
                       {task.assignee && <span>👤 {task.assignee}</span>}
                     </div>
-                    <div className="mt-2 flex items-center justify-between border-t border-ink-100 pt-2">
+                    <div className="mt-2 flex items-center justify-between border-t border-stone-100 pt-2">
                       <select
                         value={task.status}
                         onChange={(e) => moveTask(task.id, e.target.value)}
-                        className="rounded-md border border-ink-200 bg-white px-1.5 py-0.5 text-xs text-ink-600"
+                        className="rounded-md border border-stone-200 bg-white px-1.5 py-0.5 text-xs text-stone-600"
                         aria-label={t("planning.taskTitle")}
                       >
                         {COLUMNS.map((c) => (
@@ -210,14 +210,14 @@ export default function PlanningView({ tasks: initial, preview }) {
                         <button
                           onClick={() => openEdit(task)}
                           aria-label={t("common.edit")}
-                          className="grid h-6 w-6 place-items-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+                          className="grid h-6 w-6 place-items-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-700"
                         >
                           ✎
                         </button>
                         <button
                           onClick={() => handleDelete(task)}
                           aria-label={t("common.delete")}
-                          className="grid h-6 w-6 place-items-center rounded text-ink-400 hover:bg-red-50 hover:text-red-600"
+                          className="grid h-6 w-6 place-items-center rounded text-stone-400 hover:bg-red-50 hover:text-red-600"
                         >
                           🗑
                         </button>
@@ -227,7 +227,7 @@ export default function PlanningView({ tasks: initial, preview }) {
                 );
               })}
               {columns[col].length === 0 && (
-                <p className="px-1 py-6 text-center text-xs text-ink-400">{t("planning.noTasks")}</p>
+                <p className="px-1 py-6 text-center text-xs text-stone-400">{t("planning.noTasks")}</p>
               )}
             </div>
           </div>

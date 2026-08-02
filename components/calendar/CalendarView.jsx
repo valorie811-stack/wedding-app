@@ -13,6 +13,7 @@ import { saveTask, deleteTask } from "@/app/(app)/planning/actions";
 import { buildICS } from "@/lib/ics";
 import { downloadICS } from "@/lib/export";
 import { expandTaskOccurrences, isReminding } from "@/lib/recurrence";
+import tokens from "@/lib/tokens";
 
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -296,8 +297,8 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("calendar.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("calendar.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("calendar.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("calendar.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
@@ -316,23 +317,23 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Calendar grid */}
         <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-ink-100 px-5 py-3">
+          <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3">
             <div className="flex items-center gap-1">
               <button
                 onClick={() => shift(-1)}
                 aria-label="Previous month"
-                className="grid h-8 w-8 place-items-center rounded-lg text-ink-500 hover:bg-ink-100"
+                className="grid h-8 w-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100"
               >
                 ‹
               </button>
               <button
                 onClick={() => shift(1)}
                 aria-label="Next month"
-                className="grid h-8 w-8 place-items-center rounded-lg text-ink-500 hover:bg-ink-100"
+                className="grid h-8 w-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100"
               >
                 ›
               </button>
-              <h2 className="ml-2 font-serif text-lg font-semibold text-ink-900">
+              <h2 className="ml-2 font-serif text-lg font-semibold text-stone-900">
                 {monthTitle(year, month, locale)}
               </h2>
             </div>
@@ -341,7 +342,7 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
             </Button>
           </div>
           <CardBody>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-ink-400">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-stone-400">
               {weekdays.map((d) => (
                 <div key={d} className="pb-1">
                   {d}
@@ -377,13 +378,13 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
                         : isSel
                           ? "border-gold-400 bg-gold-50"
                           : dayItems.length
-                            ? "border-ink-200 bg-white hover:border-ink-300"
-                            : "border-transparent hover:bg-ink-50"
+                            ? "border-stone-200 bg-white hover:border-stone-300"
+                            : "border-transparent hover:bg-stone-50"
                     }`}
                   >
                     <span
                       className={`grid h-6 w-6 place-items-center rounded-full text-xs ${
-                        isToday ? "bg-ink-900 font-semibold text-white" : "text-ink-600"
+                        isToday ? "bg-stone-900 font-semibold text-white" : "text-stone-600"
                       }`}
                     >
                       {day}
@@ -414,10 +415,10 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
             </div>
 
             {/* Legend */}
-            <div className="mt-4 flex flex-wrap gap-4 border-t border-ink-100 pt-3 text-xs text-ink-500">
+            <div className="mt-4 flex flex-wrap gap-4 border-t border-stone-100 pt-3 text-xs text-stone-500">
               <LegendDot color={WEDDINGS.HP.hex.base} label={`${WEDDINGS.HP.flag} ${t("scope.HP")}`} />
               <LegendDot color={WEDDINGS.KK.hex.base} label={`${WEDDINGS.KK.flag} ${t("scope.KK")}`} />
-              <LegendDot color="#d4af37" label={t("calendar.milestones")} />
+              <LegendDot color={tokens.gold[500]} label={t("calendar.milestones")} />
             </div>
           </CardBody>
         </Card>
@@ -432,7 +433,7 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
             {selected ? (
               <>
                 {selectedItems.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-ink-400">{t("calendar.nothing")}</p>
+                  <p className="py-6 text-center text-sm text-stone-400">{t("calendar.nothing")}</p>
                 ) : (
                   <ul className="space-y-3">
                     {selectedItems.map((it, i) => (
@@ -492,7 +493,7 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
 }
 
 function dotColor(it) {
-  if (it.kind === "milestone") return "#d4af37";
+  if (it.kind === "milestone") return tokens.gold[500];
   return it.code === "HP" ? WEDDINGS.HP.hex.base : WEDDINGS.KK.hex.base;
 }
 
@@ -538,28 +539,28 @@ function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag,
           {editable ? (
             <button
               onClick={edit}
-              className="text-left text-sm font-medium text-ink-800 hover:text-ink-950 hover:underline"
+              className="text-left text-sm font-medium text-stone-800 hover:text-stone-950 hover:underline"
             >
               {it.title}
             </button>
           ) : (
-            <p className="text-sm font-medium text-ink-800">{it.title}</p>
+            <p className="text-sm font-medium text-stone-800">{it.title}</p>
           )}
           {it.reminding && <span title={t("planning.reminder")}>🔔</span>}
           {it.recurring && (
-            <span title={t(`planning.recur.${it.recurFreq}`)} className="text-ink-400">
+            <span title={t(`planning.recur.${it.recurFreq}`)} className="text-stone-400">
               🔁
             </span>
           )}
           {it.halal && <Badge tone="green">{t("vendors.halal")}</Badge>}
         </div>
         {isEvent ? (
-          <p className="text-xs text-ink-500">
+          <p className="text-xs text-stone-500">
             {it.start ? `${it.start.slice(0, 5)}${it.end ? `–${it.end.slice(0, 5)}` : ""}` : t("calendar.allDay")}
             {it.location ? ` · ${it.location}` : ""}
           </p>
         ) : (
-          <p className="text-xs text-ink-500">
+          <p className="text-xs text-stone-500">
             {t("calendar.milestone")}
             {it.assignee ? ` · ${it.assignee}` : ""}
             {it.status ? ` · ${t(`planning.columns.${it.status}`)}` : ""}
@@ -575,7 +576,7 @@ function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag,
             onClick={edit}
             aria-label={t("common.edit")}
             title={t("common.edit")}
-            className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+            className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
           >
             ✎
           </button>
@@ -583,7 +584,7 @@ function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag,
             onClick={del}
             aria-label={t("common.delete")}
             title={t("common.delete")}
-            className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-red-600"
+            className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-red-600"
           >
             🗑
           </button>
@@ -599,7 +600,7 @@ function UpcomingList({ items, tStr, t, locale, onPick }) {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 8);
   if (upcoming.length === 0) {
-    return <p className="py-6 text-center text-sm text-ink-400">{t("calendar.nothing")}</p>;
+    return <p className="py-6 text-center text-sm text-stone-400">{t("calendar.nothing")}</p>;
   }
   return (
     <ul className="space-y-2">
@@ -607,16 +608,16 @@ function UpcomingList({ items, tStr, t, locale, onPick }) {
         <li key={i}>
           <button
             onClick={() => onPick(it.date)}
-            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-ink-50"
+            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-stone-50"
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dotColor(it) }} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-ink-800">
+              <p className="truncate text-sm text-stone-800">
                 {it.title}
                 {it.reminding ? " 🔔" : ""}
                 {it.recurring ? " 🔁" : ""}
               </p>
-              <p className="text-xs text-ink-500">{formatShort(it.date, locale)}</p>
+              <p className="text-xs text-stone-500">{formatShort(it.date, locale)}</p>
             </div>
             {it.code && <Badge tone={it.code === "HP" ? "hp" : "kk"}>{it.code}</Badge>}
           </button>

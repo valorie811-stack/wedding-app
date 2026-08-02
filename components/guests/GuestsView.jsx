@@ -123,8 +123,8 @@ export default function GuestsView({ guests: initial, events, preview }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("guests.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("guests.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("guests.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("guests.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
@@ -179,21 +179,21 @@ export default function GuestsView({ guests: initial, events, preview }) {
       {visible.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="py-8 text-center text-sm text-ink-400">{t("guests.noGuests")}</p>
+            <p className="py-8 text-center text-sm text-stone-400">{t("guests.noGuests")}</p>
           </CardBody>
         </Card>
       ) : (
         <Card>
           <CardBody className="p-0">
-            <ul className="divide-y divide-ink-100">
+            <ul className="divide-y divide-stone-100">
               {visible.map((g) => (
                 <li key={g.id} className="group flex items-center gap-3 px-4 py-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-100 text-sm font-semibold text-ink-600">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-stone-100 text-sm font-semibold text-stone-600">
                     {initials(g.full_name)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-ink-900">{g.full_name}</span>
+                      <span className="font-medium text-stone-900">{g.full_name}</span>
                       <Badge tone="neutral">{t(`guests.sides.${g.side}`)}</Badge>
                       {g.plus_one && <Badge tone="gold">+1</Badge>}
                       {(g.dietary || []).map((d) => (
@@ -255,10 +255,10 @@ function chipClass(status) {
 }
 
 function Stat({ label, value, tone = "ink" }) {
-  const color = tone === "green" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-ink-900";
+  const color = tone === "green" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-stone-900";
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
     </div>
   );
@@ -270,7 +270,7 @@ function IconBtn({ children, label, onClick }) {
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+      className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
     >
       {children}
     </button>
@@ -357,7 +357,7 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
                   key={d}
                   onClick={() => toggleDiet(d)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                    on ? "border-kk-300 bg-kk-100 text-kk-700" : "border-ink-200 text-ink-500 hover:bg-ink-50"
+                    on ? "border-kk-300 bg-kk-100 text-kk-700" : "border-stone-200 text-stone-500 hover:bg-stone-50"
                   }`}
                 >
                   {t(`guests.diet.${d}`)}
@@ -367,10 +367,10 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-ink-700">
+        <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-ink-300 text-gold-600"
+            className="h-4 w-4 rounded border-stone-300 text-gold-600"
             checked={form.plus_one}
             onChange={(e) => setForm((f) => ({ ...f, plus_one: e.target.checked }))}
           />
@@ -380,7 +380,7 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
         {/* Invitations */}
         <div>
           <label className="label">{t("guests.invitations")}</label>
-          <ul className="divide-y divide-ink-100 rounded-xl border border-ink-200">
+          <ul className="divide-y divide-stone-100 rounded-xl border border-stone-200">
             {events.map((ev) => {
               const invited = isInvited(ev.id);
               const inv = form.invites.find((i) => i.event_id === ev.id);
@@ -388,19 +388,19 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
                 <li key={ev.id} className="flex items-center gap-3 px-3 py-2">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-ink-300"
+                    className="h-4 w-4 rounded border-stone-300"
                     checked={invited}
                     onChange={() => toggleInvite(ev.id)}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-ink-800">{ev.name?.[locale] || ev.name?.en}</p>
+                    <p className="truncate text-sm text-stone-800">{ev.name?.[locale] || ev.name?.en}</p>
                   </div>
                   <Badge tone={ev.code === "HP" ? "hp" : "kk"}>{ev.code}</Badge>
                   <select
                     disabled={!invited}
                     value={inv?.status || "pending"}
                     onChange={(e) => setInviteStatus(ev.id, e.target.value)}
-                    className="rounded-md border border-ink-200 bg-white px-1.5 py-1 text-xs text-ink-600 disabled:opacity-40"
+                    className="rounded-md border border-stone-200 bg-white px-1.5 py-1 text-xs text-stone-600 disabled:opacity-40"
                   >
                     {STATUSES.map((s) => (
                       <option key={s} value={s}>

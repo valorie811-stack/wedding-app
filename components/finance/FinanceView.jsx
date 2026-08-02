@@ -18,9 +18,10 @@ import { WEDDINGS, WEDDING_LIST } from "@/lib/theme";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import tokens from "@/lib/tokens";
 
-const PLANNED_COLOR = "#cbd5e1"; // ink-300
-const ACTUAL_COLOR = "#14b8a6"; // kk-500
+const PLANNED_COLOR = tokens.stone[300];
+const ACTUAL_COLOR = tokens.kk[600];
 
 export default function FinanceView({ categories, items, rates, fxLive, preview }) {
   const { t, scope, locale } = useApp();
@@ -88,8 +89,8 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("finance.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("finance.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("finance.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("finance.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
@@ -133,7 +134,7 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-ink-400">
+                <tr className="text-left text-xs uppercase tracking-wide text-stone-400">
                   <th className="py-2">{t("common.wedding")}</th>
                   <th className="py-2 text-right">{t("finance.plannedLocal")}</th>
                   <th className="py-2 text-right">{t("finance.actualLocal")}</th>
@@ -141,7 +142,7 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
                   <th className="py-2 text-right">{t("finance.actualAUD")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-stone-100">
                 {perWedding.map((p) => (
                   <tr key={p.wedding.code}>
                     <td className="py-2">
@@ -149,9 +150,9 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
                       {p.wedding.city[locale] || p.wedding.city.en}
                       <Badge tone={p.wedding.code === "HP" ? "hp" : "kk"} className="ml-2">{p.wedding.code}</Badge>
                     </td>
-                    <td className="py-2 text-right text-ink-600">{formatMoney(p.plannedLocal, p.wedding.currency)}</td>
-                    <td className="py-2 text-right text-ink-600">{formatMoney(p.actualLocal, p.wedding.currency)}</td>
-                    <td className="py-2 text-right text-ink-800">{formatAUD(p.planned)}</td>
+                    <td className="py-2 text-right text-stone-600">{formatMoney(p.plannedLocal, p.wedding.currency)}</td>
+                    <td className="py-2 text-right text-stone-600">{formatMoney(p.actualLocal, p.wedding.currency)}</td>
+                    <td className="py-2 text-right text-stone-800">{formatAUD(p.planned)}</td>
                     <td className="py-2 text-right font-medium text-kk-700">{formatAUD(p.actual)}</td>
                   </tr>
                 ))}
@@ -173,23 +174,28 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
 
 function ChartBlock({ data, t, angled }) {
   if (!data.length) {
-    return <p className="py-12 text-center text-sm text-ink-400">{t("finance.noData")}</p>;
+    return <p className="py-12 text-center text-sm text-stone-400">{t("finance.noData")}</p>;
   }
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: angled ? 40 : 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={tokens.chartChrome.grid} vertical={false} />
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 11, fill: "#64748b" }}
+            tick={{ fontSize: 11, fill: tokens.chartChrome.label }}
             interval={0}
             angle={angled ? -30 : 0}
             textAnchor={angled ? "end" : "middle"}
             height={angled ? 50 : 30}
           />
-          <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={44} />
-          <Tooltip formatter={(v) => formatAUD(v)} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 11, fill: tokens.chartChrome.tick }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={44} />
+          <Tooltip formatter={(v) => formatAUD(v)} contentStyle={{
+            borderRadius: 8,
+            border: `1px solid ${tokens.surface.border}`,
+            fontSize: 12,
+            fontFamily: tokens.font.mono,
+          }} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="planned" name={t("finance.planned")} fill={PLANNED_COLOR} radius={[4, 4, 0, 0]} />
           <Bar dataKey="actual" name={t("finance.actual")} fill={ACTUAL_COLOR} radius={[4, 4, 0, 0]} />
@@ -201,11 +207,11 @@ function ChartBlock({ data, t, angled }) {
 
 function Stat({ label, value, tone = "ink" }) {
   const color =
-    tone === "kk" ? "text-kk-700" : tone === "hp" ? "text-hp-700" : tone === "gold" ? "text-gold-700" : "text-ink-900";
+    tone === "kk" ? "text-kk-700" : tone === "hp" ? "text-hp-700" : tone === "gold" ? "text-gold-700" : "text-stone-900";
   return (
     <Card>
       <CardBody>
-        <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
         <p className={`mt-1 font-serif text-2xl font-semibold ${color}`}>{value}</p>
       </CardBody>
     </Card>

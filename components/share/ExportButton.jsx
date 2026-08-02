@@ -46,16 +46,16 @@ export default function ExportButton({ getRows, filename = "export", sheetName =
         {busy ? t("export.exporting") : `⬇ ${t("export.title")}`}
       </Button>
       {open && (
-        <div className="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-ink-200 bg-white py-1 shadow-pop">
+        <div className="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-pop">
           <button
             onClick={() => doExport("xlsx")}
-            className="block w-full px-4 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+            className="block w-full px-4 py-2 text-left text-sm text-stone-700 hover:bg-stone-50"
           >
             📊 {t("export.excel")}
           </button>
           <button
             onClick={() => doExport("csv")}
-            className="block w-full px-4 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+            className="block w-full px-4 py-2 text-left text-sm text-stone-700 hover:bg-stone-50"
           >
             📄 {t("export.csv")}
           </button>

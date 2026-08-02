@@ -21,8 +21,8 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
   return (
     <main className="relative min-h-screen overflow-hidden">
       {/* Dual-wedding gradient backdrop */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-hp-600 via-ink-900 to-kk-700" />
-      <div className="absolute inset-0 -z-10 opacity-30 bg-[radial-gradient(60rem_40rem_at_10%_-10%,#fbbf24,transparent),radial-gradient(50rem_40rem_at_110%_110%,#5eead4,transparent)]" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-hp-600 via-stone-900 to-kk-700" />
+      <div className="absolute inset-0 -z-10 bg-matcha-100" />
 
       {/* Language switcher */}
       <div className="absolute right-4 top-4 flex gap-1 rounded-full bg-white/15 p-1 backdrop-blur">
@@ -31,7 +31,7 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
             key={l.code}
             onClick={() => setLocale(l.code)}
             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              locale === l.code ? "bg-white text-ink-900" : "text-white/90 hover:bg-white/10"
+              locale === l.code ? "bg-white text-stone-900" : "text-white/90 hover:bg-white/10"
             }`}
           >
             {l.short}
@@ -50,10 +50,10 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
 
           <div className="card p-6 animate-fade-in">
             <form action={formAction}>
-              <h2 className="text-lg font-semibold text-ink-900">
+              <h2 className="text-lg font-semibold text-stone-900">
                 {isSetup ? t("login.setupTitle") : t("login.title")}
               </h2>
-              <p className="mt-1 text-sm text-ink-600">
+              <p className="mt-1 text-sm text-stone-600">
                 {isSetup ? t("login.setupSubtitle") : t("login.subtitle")}
               </p>
 
@@ -113,7 +113,7 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
                     : t("login.unlock")}
               </Button>
 
-              <p className="mt-4 text-center text-xs text-ink-400">{t("login.pinHint")}</p>
+              <p className="mt-4 text-center text-xs text-stone-400">{t("login.pinHint")}</p>
             </form>
           </div>
         </div>
