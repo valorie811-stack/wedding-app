@@ -3,7 +3,7 @@ import { cx } from "@/lib/cx";
 // Status tones are drawn from the matcha palette rather than Tailwind's stock
 // emerald/amber/red, which are far too saturated to sit beside sage.
 const TONES = {
-  neutral: "bg-stone-100 text-stone-600",
+  neutral: "bg-stone-100 text-stone-700",
   hp: "bg-hp-100 text-hp-800",
   kk: "bg-kk-100 text-kk-800",
   gold: "bg-gold-100 text-gold-700",

@@ -1,6 +1,9 @@
 // Minimal service worker: network-first for page navigations (with an offline
 // fallback), cache-first for immutable built assets only. Bump CACHE to invalidate.
-const CACHE = "tw-v2";
+// v3: the matcha theme replaces public/icon.svg and public/icon-maskable.svg
+// in place. Those are unhashed, and isStaticAsset() serves .svg cache-first, so
+// without this bump returning users keep the old crimson/teal icons forever.
+const CACHE = "tw-v3";
 const OFFLINE_URL = "/offline";
 
 // Only these are safe to serve cache-first: hashed build output and static images.

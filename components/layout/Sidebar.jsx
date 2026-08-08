@@ -69,7 +69,7 @@ export default function Sidebar({ open = false, onClose }) {
                             "font-mono text-[13px] tracking-chrome transition",
                             active
                               ? "bg-matcha-100 text-matcha-700"
-                              : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+                              : "text-stone-700 hover:bg-stone-100 hover:text-stone-900"
                           )}
                         >
                           <Icon
