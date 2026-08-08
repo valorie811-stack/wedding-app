@@ -91,24 +91,22 @@ body {
   /* Focus indicators carry the saturated end of the ramp, not the pale end:
      WCAG 1.4.11 wants 3:1 against the adjacent surface, and matcha-100/200
      land at 1.13 and 1.28 on white — effectively no focus ring at all. */
+  /* Control borders are stone-500, not the stone-200 hairline used on cards.
+     WCAG 1.4.11 exempts decorative container boundaries but not the boundary
+     that identifies a control, and .input is white-on-white inside a white
+     card — the border is the only thing marking it. stone-200 measured
+     1.22:1; stone-500 is 3.20:1, the first step on the ramp that clears 3:1. */
   .input {
-    @apply w-full rounded-lg border border-stone-200 bg-white px-3.5 py-2.5
+    @apply w-full rounded-lg border border-stone-500 bg-white px-3.5 py-2.5
            font-sans text-sm text-stone-900 placeholder:text-stone-400
            outline-none transition
            focus:border-matcha-600 focus:ring-2 focus:ring-matcha-500;
   }
 
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-stone-200
-           bg-white px-3.5 py-2 font-mono text-sm tracking-chrome text-stone-800
-           transition hover:bg-stone-50 active:scale-[0.98]
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matcha-600
-           focus-visible:ring-offset-2;
-  }
-
-  .btn-primary {
-    @apply border-matcha-600 bg-matcha-600 text-white hover:bg-matcha-700 hover:border-matcha-700;
-  }
+  /* No .btn here on purpose. Buttons are components/ui/Button.jsx, which owns
+     its own variants; the .btn/.btn-primary rules that used to live here were
+     never referenced, and editing them looked like fixing buttons while
+     changing nothing. Style buttons in Button.jsx. */
 
   /* Numerals — budgets, counts, countdowns. Tabular so columns align. */
   .numeric {

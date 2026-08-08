@@ -178,7 +178,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                         <select
                           value=""
                           onChange={(e) => e.target.value && doAssign(tbl.id, e.target.value, w.code)}
-                          className="mt-2 rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs text-stone-500"
+                          className="mt-2 rounded-lg border border-stone-500 bg-white px-2 py-1 text-xs text-stone-700"
                         >
                           <option value="">+ {t("tables.addGuest")}</option>
                           {pool.map((g) => (

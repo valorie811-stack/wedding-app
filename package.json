@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "audit:theme": "node scripts/audit-theme.js"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.0.0",

@@ -370,7 +370,7 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
         <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-stone-300 text-gold-600"
+            className="h-4 w-4 rounded border-stone-500 text-gold-600"
             checked={form.plus_one}
             onChange={(e) => setForm((f) => ({ ...f, plus_one: e.target.checked }))}
           />
@@ -388,7 +388,7 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
                 <li key={ev.id} className="flex items-center gap-3 px-3 py-2">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-stone-300"
+                    className="h-4 w-4 rounded border-stone-500"
                     checked={invited}
                     onChange={() => toggleInvite(ev.id)}
                   />
@@ -400,7 +400,7 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
                     disabled={!invited}
                     value={inv?.status || "pending"}
                     onChange={(e) => setInviteStatus(ev.id, e.target.value)}
-                    className="rounded-md border border-stone-200 bg-white px-1.5 py-1 text-xs text-stone-600 disabled:opacity-40"
+                    className="rounded-md border border-stone-500 bg-white px-1.5 py-1 text-xs text-stone-700 disabled:opacity-40"
                   >
                     {STATUSES.map((s) => (
                       <option key={s} value={s}>

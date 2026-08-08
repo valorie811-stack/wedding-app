@@ -197,7 +197,7 @@ export default function PlanningView({ tasks: initial, preview }) {
                       <select
                         value={task.status}
                         onChange={(e) => moveTask(task.id, e.target.value)}
-                        className="rounded-md border border-stone-200 bg-white px-1.5 py-0.5 text-xs text-stone-600"
+                        className="rounded-md border border-stone-500 bg-white px-1.5 py-0.5 text-xs text-stone-700"
                         aria-label={t("planning.taskTitle")}
                       >
                         {COLUMNS.map((c) => (

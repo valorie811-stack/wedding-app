@@ -369,7 +369,7 @@ function VendorForm({ form, setForm, onSave, onClose, t }) {
         <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-stone-300 text-kk-600"
+            className="h-4 w-4 rounded border-stone-500 text-kk-600"
             checked={form.is_halal_certified}
             onChange={(e) => setForm((f) => ({ ...f, is_halal_certified: e.target.checked }))}
           />
