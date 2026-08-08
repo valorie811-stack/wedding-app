@@ -20,18 +20,17 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      {/* Dual-wedding gradient backdrop */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-hp-600 via-stone-900 to-kk-700" />
+      {/* Flat matcha backdrop */}
       <div className="absolute inset-0 -z-10 bg-matcha-100" />
 
       {/* Language switcher */}
-      <div className="absolute right-4 top-4 flex gap-1 rounded-full bg-white/15 p-1 backdrop-blur">
+      <div className="absolute right-4 top-4 flex gap-1 rounded-full bg-white/60 p-1 backdrop-blur">
         {LOCALES.map((l) => (
           <button
             key={l.code}
             onClick={() => setLocale(l.code)}
             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              locale === l.code ? "bg-white text-stone-900" : "text-white/90 hover:bg-white/10"
+              locale === l.code ? "bg-white text-stone-900" : "text-stone-700 hover:bg-white/70"
             }`}
           >
             {l.short}
@@ -41,11 +40,11 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
 
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md">
-          <div className="mb-6 text-center text-white">
+          <div className="mb-6 text-center text-stone-900">
             <div className="mb-2 text-4xl">💍</div>
             <h1 className="font-serif text-3xl font-semibold">{t("app.name")}</h1>
-            <p className="mt-1 text-sm text-white/80">{t("app.tagline")}</p>
-            <p className="mt-3 text-xs text-white/70">🇻🇳 Hải Phòng · 🇲🇾 Kota Kinabalu · Oct 2027</p>
+            <p className="mt-1 text-sm text-stone-700">{t("app.tagline")}</p>
+            <p className="mt-3 text-xs text-stone-700">🇻🇳 Hải Phòng · 🇲🇾 Kota Kinabalu · Oct 2027</p>
           </div>
 
           <div className="card p-6 animate-fade-in">

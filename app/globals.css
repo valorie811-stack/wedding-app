@@ -69,14 +69,20 @@ body {
     @apply font-sans;
   }
 
+  /* NB: don't `@apply block` in this layer — it resolves to the .block
+     component above, not the display utility, and drags the mint panel
+     (bg + radius + padding) in with it. Set display directly. */
+
   /* Section heading, as seen on "Remember" / "Goals" / "Brain dump". */
   .section-title {
-    @apply block rounded-lg bg-matcha-100 px-3 py-1.5
+    display: block;
+    @apply rounded-lg bg-matcha-100 px-3 py-1.5
            font-mono text-sm font-medium tracking-chrome text-matcha-700;
   }
 
   .label {
-    @apply block font-mono text-[11px] font-medium uppercase tracking-chrome text-stone-500 mb-1.5;
+    display: block;
+    @apply font-mono text-[11px] font-medium uppercase tracking-chrome text-stone-500 mb-1.5;
   }
 
   /* Controls */
