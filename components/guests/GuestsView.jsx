@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { WEDDINGS } from "@/lib/theme";
+import { isFamilyOnlyEvent } from "@/lib/events";
 import { Card, CardBody } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -32,8 +33,14 @@ export default function GuestsView({ guests: initial, events, preview }) {
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  // Which summary card is acting as a filter (null = show all in the base set).
+  const [metricFilter, setMetricFilter] = useState(null);
 
   const eventById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
+
+  // Events a guest can actually be invited to / RSVP for. Excludes the
+  // family-only Lễ Dạm Ngõ (Family Introduction).
+  const invitableEvents = useMemo(() => events.filter((e) => !isFamilyOnlyEvent(e)), [events]);
 
   // Invites relevant to the current scope (all when BOTH).
   const scopedInvites = (g) =>
@@ -41,7 +48,27 @@ export default function GuestsView({ guests: initial, events, preview }) {
 
   const inScope = (g) => scope === "BOTH" || g.invites.length === 0 || g.invites.some((i) => i.code === scope);
 
-  const visible = useMemo(() => {
+  // Does guest g match a clickable summary card? Counts one PER GUEST, not per
+  // event invitation.
+  function matchesMetric(g, metric) {
+    switch (metric) {
+      case "invited":
+        return scopedInvites(g).length > 0;
+      case "confirmed":
+        return scopedInvites(g).some((i) => i.status === "confirmed");
+      case "plusOnes":
+        return !!g.plus_one;
+      case "diet":
+        return (g.dietary?.length || 0) > 0;
+      default:
+        return true; // "total" / null → everyone
+    }
+  }
+
+  // Base set: scope + search + side + response-dropdown filters. The summary
+  // cards read their totals from this set (so the numbers stay stable), and the
+  // visible list applies the active card filter on top of it.
+  const base = useMemo(() => {
     const q = search.trim().toLowerCase();
     return guests
       .filter(inScope)
@@ -50,22 +77,27 @@ export default function GuestsView({ guests: initial, events, preview }) {
       .filter((g) => statusFilter === "all" || scopedInvites(g).some((i) => i.status === statusFilter));
   }, [guests, search, sideFilter, statusFilter, scope]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stats = useMemo(() => {
-    let invited = 0;
-    const counts = { confirmed: 0, pending: 0, declined: 0 };
-    let plusOnes = 0;
-    let diet = 0;
-    visible.forEach((g) => {
-      const inv = scopedInvites(g);
-      invited += inv.length;
-      inv.forEach((i) => {
-        if (counts[i.status] != null) counts[i.status] += 1;
-      });
-      if (g.plus_one) plusOnes += 1;
-      if (g.dietary?.length) diet += 1;
-    });
-    return { total: visible.length, invited, ...counts, plusOnes, diet };
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+  const visible = useMemo(
+    () => (metricFilter ? base.filter((g) => matchesMetric(g, metricFilter)) : base),
+    [base, metricFilter] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Distinct-guest counts (one per guest, never per event invitation).
+  const stats = useMemo(
+    () => ({
+      total: base.length,
+      invited: base.filter((g) => matchesMetric(g, "invited")).length,
+      confirmed: base.filter((g) => matchesMetric(g, "confirmed")).length,
+      plusOnes: base.filter((g) => matchesMetric(g, "plusOnes")).length,
+      diet: base.filter((g) => matchesMetric(g, "diet")).length,
+    }),
+    [base] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Click a card to filter; click it again (or click Guests) to clear.
+  function toggleMetric(metric) {
+    setMetricFilter((cur) => (!metric || metric === "total" ? null : cur === metric ? null : metric));
+  }
 
   function openNew() {
     setForm({ ...blank });
@@ -135,16 +167,46 @@ export default function GuestsView({ guests: initial, events, preview }) {
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Summary — each card is a clickable filter for the list below. */}
       <Card>
         <CardBody>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label={t("guests.totalGuests")} value={stats.total} />
-            <Stat label={t("rsvp.invited")} value={stats.invited} />
-            <Stat label={t("rsvp.confirmed")} value={stats.confirmed} tone="green" />
-            <Stat label={t("rsvp.pending")} value={stats.pending} tone="amber" />
-            <Stat label={t("guests.plusOnes")} value={stats.plusOnes} />
-            <Stat label={t("guests.dietaryNeeds")} value={stats.diet} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <Stat
+              label={t("guests.totalGuests")}
+              value={stats.total}
+              metric="total"
+              active={metricFilter === null}
+              onClick={toggleMetric}
+            />
+            <Stat
+              label={t("rsvp.invited")}
+              value={stats.invited}
+              metric="invited"
+              active={metricFilter === "invited"}
+              onClick={toggleMetric}
+            />
+            <Stat
+              label={t("rsvp.confirmed")}
+              value={stats.confirmed}
+              tone="green"
+              metric="confirmed"
+              active={metricFilter === "confirmed"}
+              onClick={toggleMetric}
+            />
+            <Stat
+              label={t("guests.plusOnes")}
+              value={stats.plusOnes}
+              metric="plusOnes"
+              active={metricFilter === "plusOnes"}
+              onClick={toggleMetric}
+            />
+            <Stat
+              label={t("guests.dietaryNeeds")}
+              value={stats.diet}
+              metric="diet"
+              active={metricFilter === "diet"}
+              onClick={toggleMetric}
+            />
           </div>
         </CardBody>
       </Card>
@@ -231,7 +293,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
       <GuestForm
         form={form}
         setForm={setForm}
-        events={events}
+        events={invitableEvents}
         onSave={handleSave}
         onClose={() => setForm(null)}
         t={t}
@@ -254,13 +316,20 @@ function chipClass(status) {
       : "bg-amber-100 text-amber-700";
 }
 
-function Stat({ label, value, tone = "ink" }) {
+function Stat({ label, value, tone = "ink", metric, active = false, onClick }) {
   const color = tone === "green" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-ink-900";
   return (
-    <div>
+    <button
+      type="button"
+      onClick={() => onClick?.(metric)}
+      aria-pressed={active}
+      className={`rounded-xl border px-3 py-2 text-left transition hover:border-gold-300 hover:bg-gold-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+        active ? "border-gold-400 bg-gold-50" : "border-transparent"
+      }`}
+    >
       <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
-    </div>
+    </button>
   );
 }
 
@@ -377,7 +446,7 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
           {t("guests.plusOne")}
         </label>
 
-        {/* Invitations */}
+        {/* Invitations — the family-only Lễ Dạm Ngõ is already filtered out of `events`. */}
         <div>
           <label className="label">{t("guests.invitations")}</label>
           <ul className="divide-y divide-ink-100 rounded-xl border border-ink-200">

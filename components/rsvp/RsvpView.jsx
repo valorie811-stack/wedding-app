@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { pct } from "@/lib/format";
+import { isFamilyOnlyEvent } from "@/lib/events";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { setInvite, removeInvite } from "@/app/(app)/guests/actions";
@@ -21,10 +22,12 @@ export default function RsvpView({ guests: initial, events, preview }) {
   const { t, scope, locale } = useApp();
   const [guests, setGuests] = useState(initial);
 
-  const cols = useMemo(
-    () => (scope === "BOTH" ? events : events.filter((e) => e.code === scope)),
-    [events, scope]
-  );
+  // Columns = in-scope events, minus the family-only Lễ Dạm Ngõ (Family
+  // Introduction), which is never a guest RSVP option.
+  const cols = useMemo(() => {
+    const scoped = scope === "BOTH" ? events : events.filter((e) => e.code === scope);
+    return scoped.filter((e) => !isFamilyOnlyEvent(e));
+  }, [events, scope]);
 
   // Rows: guests invited to at least one in-scope event, plus any guest with no
   // invites at all (so they can be invited). Keeps the matrix focused yet usable.
