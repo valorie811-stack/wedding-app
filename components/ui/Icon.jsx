@@ -5,7 +5,9 @@
 // nav repaint for all 13 icons, which is exactly the kind of cost the recent
 // nav performance work removed.
 //
-// Regenerate with scripts/build-icons.py.
+// Do not hand-edit — regenerate with: npm run icons:build
+// npm run icons:verify (wired into npm run audit:theme) fails if this file and
+// scripts/build-icons.mjs have drifted apart.
 
 const PATHS = {
   dashboard:

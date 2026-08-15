@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 /**
- * Node port of scripts/build-icons.py — regenerates components/ui/Icon.jsx.
+ * Regenerates components/ui/Icon.jsx — the single source for the icon set.
  *
- * Exists because the toolchain here has no Python interpreter. build-icons.py
- * remains the reference implementation; this file must stay behaviourally
- * identical to it. `npm run icons:verify` regenerates and diffs against the
- * committed Icon.jsx, so any drift between the two fails loudly.
+ *   npm run icons:build    write Icon.jsx
+ *   npm run icons:verify   regenerate and diff against the committed file
  *
- * The tremor is seeded, so reproducing it means reproducing CPython's RNG
- * bit-for-bit: MT19937 seeded via init_by_array (what random.Random(int) does)
- * and genrand_res53 for random(). Everything downstream is ordinary float
- * maths, but the *order* of rng draws matters and is preserved exactly.
+ * This began as a port of a Python original (scripts/build-icons.py, removed),
+ * which is why the RNG looks the way it does: the hand-drawn tremor is seeded,
+ * so keeping the existing icons stable meant reproducing CPython's generator
+ * bit-for-bit — MT19937 seeded via init_by_array, as random.Random(int) does,
+ * and genrand_res53 for random(). Equivalence was proven byte-for-byte against
+ * the committed Icon.jsx before the Python version was dropped.
  *
- * Usage:  node scripts/build-icons.mjs [--check]
+ * Do not "simplify" PyRandom to Math.random or a shorter PRNG: every existing
+ * icon's path data would change. The *order* of rng draws matters too — nx is
+ * drawn before ny in roughen(), and each icon reseeds from its own SEEDS entry.
+ * Append new icons to the end of I; the default seed is 1000 + index * 37, so
+ * inserting earlier re-rolls every icon after it.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -110,7 +114,7 @@ class PyRandom {
   }
 }
 
-/* ── geometry helpers (1:1 with the Python) ─────────────────────────────── */
+/* ── geometry helpers ───────────────────────────────────────────────────── */
 const rad = (d) => (d * Math.PI) / 180;
 
 const circle = (cx, cy, r, n = 48) =>
@@ -347,7 +351,9 @@ function build() {
 // nav repaint for all 13 icons, which is exactly the kind of cost the recent
 // nav performance work removed.
 //
-// Regenerate with scripts/build-icons.py.
+// Do not hand-edit — regenerate with: npm run icons:build
+// npm run icons:verify (wired into npm run audit:theme) fails if this file and
+// scripts/build-icons.mjs have drifted apart.
 
 const PATHS = {
 ${body}
