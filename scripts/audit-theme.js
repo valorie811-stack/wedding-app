@@ -112,6 +112,9 @@ function checkContrast() {
     ["btn primary fill",      WHITE,         t.matcha[600], 4.5],
     ["btn hp fill",           WHITE,         t.hp[600],     4.5],
     ["btn kk fill",           WHITE,         t.kk[600],     4.5],
+    // The gold variant carries a dark label; no gold step holds white text.
+    ["btn gold fill",         t.stone[900],  t.gold[400],   4.5],
+    ["btn gold fill :hover",  t.stone[900],  t.gold[300],   4.5],
     // UI component contrast (WCAG 1.4.11)
     ["input border",          t.stone[500],  WHITE,         3.0],
     ["btn outline border",    t.stone[500],  WHITE,         3.0],
@@ -175,6 +178,9 @@ function checkWiring() {
   if (!/ring-matcha-600/.test(btn)) fails.push("Button.jsx focus ring must be matcha-600 (WCAG 1.4.11)");
   if (/ring-matcha-[12]00/.test(btn)) fails.push("Button.jsx focus ring is a pale step, under 3:1");
   if (/outline:\s*"[^"]*border-stone-(200|300)\b/.test(btn)) fails.push("Button.jsx outline variant uses a hairline border");
+  // No gold step carries white text at 4.5:1, so the gold variant must stay dark-on-light.
+  if (/gold:\s*"[^"]*text-white/.test(btn)) fails.push("Button.jsx gold variant uses white text; no gold step reaches 4.5:1 with it");
+  if (!/gold:\s*"[^"]*bg-gold-400\b/.test(btn)) fails.push("Button.jsx gold variant must sit on bg-gold-400 (5.21:1 with stone-900)");
   if (/danger:\s*"[^"]*border-hp-[12]00\b/.test(btn)) fails.push("Button.jsx danger variant uses a hairline border");
 
   // The .block component shares a name with Tailwind's display utility, so

@@ -4,7 +4,12 @@ import { cx } from "@/lib/cx";
 // template's wide tracking. Flat fills, hairline borders, no shadow.
 const VARIANTS = {
   primary: "bg-matcha-600 text-white hover:bg-matcha-700 border border-transparent",
-  gold: "bg-gold-500 text-white hover:bg-gold-600 border border-transparent",
+  // Dark label on a light gold, unlike the other filled variants. White on
+  // gold-500 measured 2.93:1 and gold-600 4.23:1 — the gold ramp has no step
+  // that carries white text at 4.5:1 without going to gold-700, a dark bronze
+  // that stops reading as gold. Dark-on-light clears it at gold-400 (5.21:1).
+  // Hover lightens rather than darkens: darkening is what breaks a dark label.
+  gold: "bg-gold-400 text-stone-900 hover:bg-gold-300 border border-transparent",
   hp: "bg-hp-600 text-white hover:bg-hp-700 border border-transparent",
   kk: "bg-kk-600 text-white hover:bg-kk-700 border border-transparent",
   // Bordered variants carry stone-500/hp-500 rather than the stone-200 hairline
