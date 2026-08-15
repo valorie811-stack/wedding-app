@@ -28,3 +28,11 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# claude code
+# Both are already covered on this machine — settings.local.json by the global
+# ignore, worktrees/ by .git/info/exclude — but neither of those travels with
+# the repo. settings.local.json holds per-machine permission grants and
+# worktrees/ holds full agent checkouts; neither belongs in a commit.
+.claude/settings.local.json
+.claude/worktrees/
