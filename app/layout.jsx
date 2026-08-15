@@ -30,7 +30,9 @@ export const metadata = {
     "Cross-cultural wedding planner for two destination weddings: Hải Phòng, Vietnam and Kota Kinabalu, Malaysia (October 2027).",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Two Weddings" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  // No `icons` key: app/icon.png, app/apple-icon.png and app/opengraph-image.png
+  // are picked up by Next's file conventions, and an explicit entry here would
+  // override them. Regenerate all of them with scripts/build-brand-images.mjs.
 };
 
 export const viewport = {

@@ -21,17 +21,18 @@ const ROOT = path.resolve(__dirname, "..");
 const t = require(path.join(ROOT, "lib", "tokens.js"));
 const SRC_DIRS = ["app", "components", "lib", "context"];
 
-// Phase 1 (action/status glyphs -> drawn icons) took this from 90 to 55.
+// Phase 1 (action/status glyphs -> drawn icons) took this from 90 to 55;
+// replacing the login 💍 with the couple photo took it to 54.
 // Lower it as phases land; it must never rise.
 //
-// The 55 that remain are deliberate, not a backlog of oversights:
+// The 54 that remain are deliberate, not a backlog of oversights:
 //   10  flag emoji (HP/KK identity) — belongs to the hp/kk tokens, not icons
 //    2  "✓" written into XLSX/CSV export cells — data, not UI
 //    4  RsvpView SYMBOL — its "?" and "+" members have no icon counterpart,
 //       so converting half the set would read worse than leaving it
 //    3  clickHint prose in en/vi/zh describing the ✕ affordance
 //   36  phase 2/3 decoration (🔔 🔁 📅 👤 📊 …)
-const EMOJI_BUDGET = 55;
+const EMOJI_BUDGET = 54;
 
 const RAMPS = { stone: t.stone, matcha: t.matcha, hp: t.hp, kk: t.kk, gold: t.gold };
 const WHITE = "#FFFFFF";

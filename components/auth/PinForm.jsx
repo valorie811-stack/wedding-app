@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Image from "next/image";
 import { useApp } from "@/context/AppContext";
 import { LOCALES } from "@/lib/i18n";
 import Button from "@/components/ui/Button";
@@ -41,7 +42,14 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md">
           <div className="mb-6 text-center text-stone-900">
-            <div className="mb-2 text-4xl">💍</div>
+            <Image
+              src="/couple.jpg"
+              alt=""
+              width={256}
+              height={256}
+              priority
+              className="mx-auto mb-3 h-28 w-28 rounded-full border border-matcha-300 object-cover"
+            />
             <h1 className="font-serif text-3xl font-semibold">{t("app.name")}</h1>
             <p className="mt-1 text-sm text-stone-700">{t("app.tagline")}</p>
             <p className="mt-3 text-xs text-stone-700">🇻🇳 Hải Phòng · 🇲🇾 Kota Kinabalu · Oct 2027</p>
