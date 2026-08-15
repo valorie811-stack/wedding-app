@@ -1,0 +1,53 @@
+# Enforces feature -> develop -> main.
+#
+# main and develop drifted badly once already: PRs #10 and #11 merged feature
+# branches straight into main, so develop never saw that work and develop -> main
+# stopped merging. Untangling it took a dedicated reconciliation PR (#14).
+#
+# Branch protection on main already requires a PR, but GitHub has no native way
+# to restrict which branch a PR may come *from*. This job is that restriction.
+# It only bites once it is listed in main's required status checks — the
+# workflow alone reports a red check that can still be merged past.
+name: Branch policy
+
+on:
+  pull_request:
+    branches: [main]
+    # `edited` matters: without it, retargeting an existing PR to main would
+    # skip the check entirely.
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  branch-policy:
+    name: branch-policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: PRs into main must come from develop
+        # Passed through env rather than interpolated into the script: a branch
+        # name is attacker-controlled text and would otherwise be evaluated by
+        # the shell.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          echo "Pull request head branch: $HEAD_REF"
+          case "$HEAD_REF" in
+            develop)
+              echo "OK — promotion from develop."
+              ;;
+            hotfix/*)
+              echo "OK — hotfix exception."
+              echo "Merge this back into develop straight after, or develop falls behind"
+              echo "and the next promotion conflicts. That is exactly how #14 came about."
+              ;;
+            *)
+              echo "::error title=Wrong source branch::PRs into main must come from develop (or hotfix/*). This one is from '$HEAD_REF'."
+              echo ""
+              echo "Retarget this PR at develop, then open develop -> main to promote."
+              echo "Merging features straight into main is what left develop 11 commits behind."
+              exit 1
+              ;;
+          esac
