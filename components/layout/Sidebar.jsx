@@ -31,11 +31,12 @@ export default function Sidebar({ open = false, onClose }) {
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Brand — the single 喜 mark, since 囍 is unreadable at this size */}
+        {/* Brand — the single 喜 mark, since 囍 is unreadable at this size.
+            Drawn from the generated set rather than public/mark.svg, so it
+            shares the icons' tremor and takes currentColor. */}
         <div className="flex items-center gap-2.5 px-5 py-5">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-matcha-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mark.svg" alt="" width={20} height={20} aria-hidden="true" />
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-matcha-100 text-hp-600">
+            <Icon name="mark" size={22} />
           </span>
           <div className="leading-tight">
             <p className="font-mono text-sm font-medium tracking-chrome text-stone-900">

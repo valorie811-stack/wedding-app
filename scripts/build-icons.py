@@ -166,11 +166,29 @@ I["giftTray"] = [arc(12, 14.6, 7, 180, 360), line((12, 7.6), (12, 6)), circle(12
 I["rings"] = [circle(8.9, 14.2, 4.9), circle(15.1, 14.2, 4.9),
               line((8.9, 9.3), (7.7, 6.6), (10.1, 6.6), (8.9, 9.3))]
 
+# --- brand mark -------------------------------------------------------------
+# 喜 for the sidebar, where 囍 is unreadable at 20px. Drawn here rather than
+# hand-authored as public/mark.svg, which carried a runtime feTurbulence +
+# feDisplacementMap filter — the exact thing the tremor is baked to avoid.
+# Structure, top to bottom: 士 (long bar, stem, shorter bar), 口, 丷, 一, 口.
+# Proportioned square; the hand-authored version was 188x262 and read stretched.
+# MUST stay last in I: default seeds are 1000 + insertion index * 37, so
+# inserting earlier would re-roll every icon after it.
+I["mark"] = [line((4.2, 3), (19.8, 3)),
+             line((12, 3), (12, 5.8)),
+             line((6.6, 5.8), (17.4, 5.8)),
+             rect(7, 7.3, 10, 3.3),
+             line((9.5, 11.9), (8, 13.7)),
+             line((14.5, 11.9), (16, 13.7)),
+             line((3, 15.1), (21, 15.1)),
+             rect(5.3, 16.9, 13.4, 4.1)]
+
 SEEDS = {"tables": 777, "attire": 5150,
-         "redEnvelope": 8101, "tea": 8207, "giftTray": 8311, "rings": 8419}
+         "redEnvelope": 8101, "tea": 8207, "giftTray": 8311, "rings": 8419,
+         "mark": 9001}
 ORDER = ["dashboard", "scheduler", "planning", "guests", "rsvp", "tables", "vendors",
          "budget", "finance", "moodboards", "attire", "traditions", "settings",
-         "redEnvelope", "tea", "giftTray", "rings"]
+         "redEnvelope", "tea", "giftTray", "rings", "mark"]
 
 def main():
     paths = {}

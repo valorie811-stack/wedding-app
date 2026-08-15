@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "audit:theme": "node scripts/audit-theme.js"
+    "audit:theme": "node scripts/audit-theme.js && node scripts/build-icons.mjs --check",
+    "icons:build": "node scripts/build-icons.mjs",
+    "icons:verify": "node scripts/build-icons.mjs --check"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.0.0",
