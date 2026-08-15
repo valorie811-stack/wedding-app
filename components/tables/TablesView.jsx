@@ -10,6 +10,24 @@ import Modal from "@/components/ui/Modal";
 import { saveTable, deleteTable, assignGuest, unassignGuest } from "@/app/(app)/tables/actions";
 import Icon from "@/components/ui/Icon";
 
+// A plus one has no guest record of its own, so it cannot be dragged or seated
+// separately — one chip covers the pair, and they always move together.
+function ChipLabel({ guest }) {
+  if (!guest.plus_one) return guest.full_name;
+  return (
+    <>
+      {guest.full_name}
+      <span className="opacity-70">
+        {" +1"}
+        {guest.plus_one_name ? ` ${guest.plus_one_name}` : ""}
+      </span>
+    </>
+  );
+}
+
+// Seats, not chips: a guest bringing someone takes two places at the table.
+const seatsFor = (guest) => (guest?.plus_one ? 2 : 1);
+
 export default function TablesView({ tables: initTables, assignments: initAsg, guests, preview }) {
   const { t, scope } = useApp();
   const [tables, setTables] = useState(initTables);
@@ -110,7 +128,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                         onDragEnd={() => setDrag(null)}
                         className="cursor-grab rounded-full bg-white px-2.5 py-1 text-xs text-stone-700 shadow-card active:cursor-grabbing"
                       >
-                        {g.full_name}
+                        <ChipLabel guest={g} />
                       </span>
                     ))}
                   </div>
@@ -128,7 +146,10 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                     .filter((a) => a.table_id === tbl.id)
                     .map((a) => ({ asg: a, guest: guestById.get(a.guest_id) }))
                     .filter((x) => x.guest);
-                  const over = seated.length > tbl.capacity;
+                  // Counts seats rather than chips, so a table filled with
+                  // guests who are each bringing someone reports honestly.
+                  const seats = seated.reduce((n, x) => n + seatsFor(x.guest), 0);
+                  const over = seats > tbl.capacity;
                   return (
                     <div
                       key={tbl.id}
@@ -143,7 +164,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                         <h3 className="font-medium text-stone-900">{tbl.name}</h3>
                         <div className="flex items-center gap-1">
                           <Badge tone={over ? "red" : "neutral"}>
-                            {seated.length}/{tbl.capacity}
+                            {seats}/{tbl.capacity}
                           </Badge>
                           <button onClick={() => openEditTable(tbl)} aria-label={t("common.edit")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-stone-100 hover:text-stone-700 sm:opacity-0 sm:group-hover:opacity-100"><Icon name="edit" size={13} /></button>
                           <button onClick={() => handleDeleteTable(tbl)} aria-label={t("common.delete")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100"><Icon name="trash" size={13} /></button>
@@ -162,7 +183,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                             onDragEnd={() => setDrag(null)}
                             className="group/chip inline-flex cursor-grab items-center gap-1 rounded-full bg-kk-50 px-2.5 py-1 text-xs text-kk-800 active:cursor-grabbing"
                           >
-                            {guest.full_name}
+                            <ChipLabel guest={guest} />
                             <button
                               onClick={() => doUnassign(tbl.id, guest.id)}
                               aria-label={t("common.remove")}

@@ -22,6 +22,7 @@ const blank = {
   full_name: "",
   side: "both",
   plus_one: false,
+  plus_one_name: "",
   dietary: [],
   notes: "",
   invites: [],
@@ -109,6 +110,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
       full_name: g.full_name,
       side: g.side || "both",
       plus_one: !!g.plus_one,
+      plus_one_name: g.plus_one_name || "",
       dietary: [...(g.dietary || [])],
       notes: g.notes || "",
       invites: g.invites.map((i) => ({ event_id: i.event_id, status: i.status })),
@@ -122,7 +124,14 @@ export default function GuestsView({ guests: initial, events, preview }) {
       status: i.status,
       code: eventById.get(i.event_id)?.code,
     }));
-    const payload = { ...form, full_name: form.full_name.trim(), invites };
+    const payload = {
+      ...form,
+      full_name: form.full_name.trim(),
+      // Mirrors the normalisation in saveGuest, so the optimistic row below
+      // matches what actually lands in the database.
+      plus_one_name: form.plus_one ? form.plus_one_name.trim() : "",
+      invites,
+    };
     setGuests((prev) => {
       if (form.id) return prev.map((g) => (g.id === form.id ? { ...g, ...payload } : g));
       return [...prev, { ...payload, id: crypto.randomUUID() }];
@@ -142,6 +151,10 @@ export default function GuestsView({ guests: initial, events, preview }) {
       [t("guests.fullName")]: g.full_name,
       [t("guests.side")]: t(`guests.sides.${g.side}`),
       [t("guests.plusOne")]: g.plus_one ? "✓" : "",
+      // Always emit this key, even when empty: toCSV takes its headers from
+      // Object.keys(rows[0]) alone, so a conditional key would drop the column
+      // for everyone whenever the first guest happens to have no plus one.
+      [t("guests.plusOneName")]: (g.plus_one && g.plus_one_name) || "",
       [t("guests.dietary")]: (g.dietary || []).map((d) => t(`guests.diet.${d}`)).join(", "),
       [t("rsvp.title")]: scopedInvites(g)
         .map((i) => {
@@ -258,7 +271,17 @@ export default function GuestsView({ guests: initial, events, preview }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-stone-900">{g.full_name}</span>
                       <Badge tone="neutral">{t(`guests.sides.${g.side}`)}</Badge>
-                      {g.plus_one && <Badge tone="gold">+1</Badge>}
+                      {g.plus_one && (
+                        <>
+                          <Badge tone="gold">+1</Badge>
+                          {/* Name sits outside the Badge on purpose: Badge is
+                              11px mono chrome, which mangles Vietnamese
+                              diacritics and CJK. */}
+                          {g.plus_one_name && (
+                            <span className="text-sm text-stone-700">{g.plus_one_name}</span>
+                          )}
+                        </>
+                      )}
                       {(g.dietary || []).map((d) => (
                         <Badge key={d} tone="kk">
                           {t(`guests.diet.${d}`)}
@@ -450,6 +473,23 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
           />
           {t("guests.plusOne")}
         </label>
+
+        {/* Un-ticking hides this but deliberately keeps what was typed in form
+            state, so a mis-click and re-tick doesn't lose it. The name is only
+            discarded on save, by handleSave and again server-side. */}
+        {form.plus_one ? (
+          <div>
+            <label className="label" htmlFor="plus-one-name">
+              {t("guests.plusOneName")}
+            </label>
+            <input
+              id="plus-one-name"
+              className="input"
+              value={form.plus_one_name}
+              onChange={set("plus_one_name")}
+            />
+          </div>
+        ) : null}
 
         {/* Invitations — the family-only Lễ Dạm Ngõ is already filtered out of `events`. */}
         <div>

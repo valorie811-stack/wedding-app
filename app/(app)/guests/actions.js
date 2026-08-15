@@ -12,7 +12,7 @@ function refresh() {
 }
 
 // Insert/update a guest and sync their per-event invitations in one call.
-// input: { id, full_name, side, plus_one, dietary[], notes,
+// input: { id, full_name, side, plus_one, plus_one_name, dietary[], notes,
 //          invites: [{ event_id, status }] }
 export async function saveGuest(input) {
   const supabase = await createClient();
@@ -22,6 +22,9 @@ export async function saveGuest(input) {
     full_name: input.full_name,
     side: input.side || "both",
     plus_one: !!input.plus_one,
+    // Single normalisation point, server-side, so the invariant holds whatever
+    // the client sends: no name is stored without the flag.
+    plus_one_name: input.plus_one ? input.plus_one_name?.trim() || null : null,
     dietary: input.dietary || [],
     notes: input.notes || null,
   };
