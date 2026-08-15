@@ -99,15 +99,12 @@ confirming a non-zero exit.
 
 #### Worth a reviewer's attention
 
-- **Two icon generators.** `scripts/build-icons.py` is the reference, but
-  there is no Python interpreter on the dev machine and winget could not
-  reach the network, so `scripts/build-icons.mjs` ports it to Node —
-  CPython's MT19937 (`init_by_array` + `genrand_res53`), the same RNG draw
-  order, and Python's float formatting. It reproduces the committed
-  `Icon.jsx` byte-for-byte, and `icons:verify` keeps it honest. Both files
-  received identical definitions for the new icons. **This is a real
-  maintenance smell** — two sources that must stay in sync — and the obvious
-  resolution is to delete one once Python is available.
+- ~~**Two icon generators.**~~ **Resolved after this PR merged.**
+  `scripts/build-icons.py` was removed; `scripts/build-icons.mjs` is now the
+  only generator, run with `npm run icons:build`. It had already been proven to
+  reproduce `Icon.jsx` byte-for-byte, and removing the Python version changed
+  no path data — all 25 icons stayed identical. The RNG still mirrors CPython's
+  MT19937 because the tremor is seeded: replacing it would re-roll every icon.
 - **`gold` button variant still fails AA.** White on `gold-500` measures
   2.93:1 across 9 primary CTAs. `gold-700` clears it at 6.61:1 but visibly
   darkens the primary action, so it was left as a design call rather than
