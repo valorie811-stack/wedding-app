@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { MODULES, SECTIONS } from "@/lib/modules";
 import { useApp } from "@/context/AppContext";
@@ -31,12 +32,20 @@ export default function Sidebar({ open = false, onClose }) {
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Brand — the single 喜 mark, since 囍 is unreadable at this size.
-            Drawn from the generated set rather than public/mark.svg, so it
-            shares the icons' tremor and takes currentColor. */}
+        {/* Brand — the couple photo, filling the tile rather than sitting
+            inside it, since a 36px frame is already tight for two faces.
+            Reuses /couple.jpg from the login screen instead of adding another
+            asset. The drawn `mark` icon is still in the generated set if this
+            ever wants to go back to the 喜. */}
         <div className="flex items-center gap-2.5 px-5 py-5">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-matcha-100 text-hp-600">
-            <Icon name="mark" size={22} />
+          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg">
+            <Image
+              src="/couple.jpg"
+              alt=""
+              width={72}
+              height={72}
+              className="h-full w-full object-cover"
+            />
           </span>
           <div className="leading-tight">
             <p className="font-mono text-sm font-medium tracking-chrome text-stone-900">
