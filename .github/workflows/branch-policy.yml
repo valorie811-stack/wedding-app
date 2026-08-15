@@ -8,6 +8,12 @@
 # to restrict which branch a PR may come *from*. This job is that restriction.
 # It only bites once it is listed in main's required status checks — the
 # workflow alone reports a red check that can still be merged past.
+#
+# develop is the ONLY accepted source. There is deliberately no hotfix escape
+# hatch: an urgent fix goes onto develop and is promoted from there, which keeps
+# main and develop from diverging even under time pressure. If something truly
+# cannot wait, a repo admin can still merge past a failing check — that is the
+# release valve, and it leaves an audit trail, which a standing exception does not.
 name: Branch policy
 
 on:
@@ -38,16 +44,15 @@ jobs:
             develop)
               echo "OK — promotion from develop."
               ;;
-            hotfix/*)
-              echo "OK — hotfix exception."
-              echo "Merge this back into develop straight after, or develop falls behind"
-              echo "and the next promotion conflicts. That is exactly how #14 came about."
-              ;;
             *)
-              echo "::error title=Wrong source branch::PRs into main must come from develop (or hotfix/*). This one is from '$HEAD_REF'."
+              echo "::error title=Wrong source branch::PRs into main must come from develop. This one is from '$HEAD_REF'."
               echo ""
               echo "Retarget this PR at develop, then open develop -> main to promote."
               echo "Merging features straight into main is what left develop 11 commits behind."
+              echo ""
+              echo "This applies to urgent fixes too — land them on develop and promote."
+              echo "Anything that bypasses develop puts main ahead of it, and the next"
+              echo "promotion conflicts."
               exit 1
               ;;
           esac
