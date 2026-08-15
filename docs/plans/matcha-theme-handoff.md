@@ -7,6 +7,19 @@ Notion template.
 Work is **on branch `feat/matcha-theme`**, branched from `develop`. All file
 changes are on disk and staged, but **nothing is committed yet** — see step 1.
 
+> **Historical record.** This describes the handoff as written; the steps below
+> were carried out and the branch has since shipped to `main`. What has changed
+> since, so the file map below is not read as current:
+>
+> - The generator is `scripts/build-icons.mjs`, run with `npm run icons:build`.
+>   `build-icons.py` was removed once the Node version was proven to reproduce
+>   `Icon.jsx` byte-for-byte.
+> - The set is 25 icons, not 17 — the `喜` mark plus seven UI affordances.
+> - `public/mark.svg` was deleted; the mark is generated into `Icon.jsx`.
+> - Icon branding was later replaced by a photograph; `public/icon.svg` and
+>   `icon-maskable.svg` are gone.
+> - `npm run audit:theme` guards the palette, contrast and emoji budget.
+
 ---
 
 ## 1. Unblock git and commit
@@ -122,10 +135,13 @@ Offline checks that did pass, so you can skip re-testing these:
 - `lib/tokens.js` — single source of colour and type. Plain CommonJS with no
   imports so Tailwind (build time), app code (webpack interop), `@react-pdf`
   and inline email styles can all read it.
-- `components/ui/Icon.jsx` — 17 generated icons. **Do not hand-edit**; regenerate.
+- `components/ui/Icon.jsx` — generated icons. **Do not hand-edit**; regenerate.
 - `scripts/build-icons.py` — the generator. `python3 scripts/build-icons.py`.
+  *(Superseded: the generator is now `scripts/build-icons.mjs`, run with
+  `npm run icons:build`. See the note at the top of this file.)*
 - `public/mark.svg` — single `喜`, for the sidebar and favicon where `囍` is
-  unreadable.
+  unreadable. *(Superseded: the mark is generated into `Icon.jsx` and this file
+  was removed.)*
 
 **Replaced**
 
