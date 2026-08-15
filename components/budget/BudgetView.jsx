@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveCategory, deleteCategory, saveItem, deleteItem } from "@/app/(app)/budget/actions";
 import ExportButton from "@/components/share/ExportButton";
+import Icon from "@/components/ui/Icon";
 
 export default function BudgetView({ categories: initialCats = [], items: initialItems = [], preview }) {
   const { t, scope } = useApp();
@@ -119,11 +120,11 @@ export default function BudgetView({ categories: initialCats = [], items: initia
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("budget.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("budget.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("budget.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("budget.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <ExportButton getRows={exportRows} filename="budget" sheetName={t("budget.title")} />
           <Button variant="outline" onClick={openNewCategory}>
             + {t("budget.addCategory")}
@@ -143,7 +144,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
             <Stat label={t("budget.remaining")} value={formatAUD(Math.max(0, combined.planned - combined.actual))} tone="gold" />
             <Stat label={t("budget.used")} value={`${combined.usedPct}%`} tone="hp" />
           </div>
-          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-ink-100">
+          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
             <div
               className={`h-full rounded-full ${combined.usedPct > 100 ? "bg-red-500" : "bg-kk-500"}`}
               style={{ width: `${Math.min(100, combined.usedPct)}%` }}
@@ -176,10 +177,10 @@ export default function BudgetView({ categories: initialCats = [], items: initia
 
 function Stat({ label, value, tone = "ink" }) {
   const color =
-    tone === "kk" ? "text-kk-700" : tone === "hp" ? "text-hp-700" : tone === "gold" ? "text-gold-700" : "text-ink-900";
+    tone === "kk" ? "text-kk-700" : tone === "hp" ? "text-hp-700" : tone === "gold" ? "text-gold-700" : "text-stone-900";
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
     </div>
   );
@@ -191,7 +192,7 @@ function IconBtn({ children, label, onClick }) {
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+      className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
     >
       {children}
     </button>
@@ -206,12 +207,12 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
 
   return (
     <Card>
-      <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
         <div className="flex items-center gap-2">
           <span className="text-lg">{wedding.flag}</span>
           <div>
-            <h3 className="text-sm font-semibold text-ink-900">{wedding.city.en} · {currency}</h3>
-            <p className="text-xs text-ink-500">
+            <h3 className="text-sm font-semibold text-stone-900">{wedding.city.en} · {currency}</h3>
+            <p className="text-xs text-stone-500">
               {formatMoney(actual, currency)} / {formatMoney(planned, currency)} · {usedPct}% {t("budget.used")}
             </p>
           </div>
@@ -221,7 +222,7 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
 
       <CardBody className="space-y-5">
         {cats.length === 0 ? (
-          <p className="py-6 text-center text-sm text-ink-400">{t("budget.noCategories")}</p>
+          <p className="py-6 text-center text-sm text-stone-400">{t("budget.noCategories")}</p>
         ) : (
           cats.map((c) => {
             const catItems = itemsFor(c.code, c.category);
@@ -229,47 +230,47 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
             const over = catActual > c.planned;
             const remaining = Number(c.planned) - catActual;
             return (
-              <div key={c.id} className="rounded-xl border border-ink-100">
+              <div key={c.id} className="rounded-xl border border-stone-100">
                 {/* Category header */}
                 <div className="group flex items-center gap-3 px-4 pt-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="font-medium text-ink-800">{c.category}</span>
-                      <span className={over ? "text-red-600" : "text-ink-600"}>
+                      <span className="font-medium text-stone-800">{c.category}</span>
+                      <span className={over ? "text-red-600" : "text-stone-600"}>
                         {formatMoney(catActual, currency)}
-                        <span className="text-ink-400"> / {formatMoney(c.planned, currency)}</span>
+                        <span className="text-stone-400"> / {formatMoney(c.planned, currency)}</span>
                       </span>
                     </div>
-                    <div className="mt-1.5 relative h-2 w-full overflow-hidden rounded-full bg-ink-100">
+                    <div className="mt-1.5 relative h-2 w-full overflow-hidden rounded-full bg-stone-100">
                       <div
                         className={`absolute inset-y-0 left-0 rounded-full ${over ? "bg-red-500" : "bg-kk-500"}`}
                         style={{ width: `${Math.min(100, pct(catActual, c.planned))}%` }}
                       />
                     </div>
-                    <p className="mt-1 text-xs text-ink-400">
+                    <p className="mt-1 text-xs text-stone-400">
                       {remaining >= 0
                         ? `${formatMoney(remaining, currency)} ${t("budget.remaining").toLowerCase()}`
                         : `${formatMoney(-remaining, currency)} ${t("budget.overBudget").toLowerCase()}`}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1 self-start opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                    <IconBtn label={t("common.edit")} onClick={() => onEditCategory(c)}>✎</IconBtn>
-                    <IconBtn label={t("common.delete")} onClick={() => onDeleteCategory(c)}>🗑</IconBtn>
+                    <IconBtn label={t("common.edit")} onClick={() => onEditCategory(c)}><Icon name="edit" size={15} /></IconBtn>
+                    <IconBtn label={t("common.delete")} onClick={() => onDeleteCategory(c)}><Icon name="trash" size={15} /></IconBtn>
                   </div>
                 </div>
 
                 {/* Expense items */}
-                <ul className="mt-2 divide-y divide-ink-100 border-t border-ink-100">
+                <ul className="mt-2 divide-y divide-stone-100 border-t border-stone-100">
                   {catItems.length === 0 ? (
-                    <li className="px-4 py-2 text-xs text-ink-400">{t("budget.noExpenses")}</li>
+                    <li className="px-4 py-2 text-xs text-stone-400">{t("budget.noExpenses")}</li>
                   ) : (
                     catItems.map((it) => (
                       <li key={it.id} className="group/item flex items-center gap-2 px-4 py-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate text-ink-700">{it.label || "—"}</span>
-                        <span className="text-ink-600">{formatMoney(it.actual, currency)}</span>
+                        <span className="min-w-0 flex-1 truncate text-stone-700">{it.label || "—"}</span>
+                        <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
                         <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
-                          <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}>✎</IconBtn>
-                          <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}>🗑</IconBtn>
+                          <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
+                          <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
                         </div>
                       </li>
                     ))

@@ -6,15 +6,16 @@ import { pct } from "@/lib/format";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { setInvite, removeInvite } from "@/app/(app)/guests/actions";
+import Icon from "@/components/ui/Icon";
 
 const CYCLE = ["confirmed", "pending", "declined"];
 const SYMBOL = { confirmed: "✓", pending: "?", declined: "✕" };
 
 function cellClass(status) {
   if (status === "confirmed") return "bg-emerald-500 text-white";
-  if (status === "pending") return "bg-amber-400 text-ink-900";
+  if (status === "pending") return "bg-amber-400 text-stone-900";
   if (status === "declined") return "bg-red-500 text-white";
-  return "border border-dashed border-ink-300 text-ink-300 hover:border-ink-400 hover:text-ink-500";
+  return "border border-dashed border-stone-300 text-stone-300 hover:border-stone-400 hover:text-stone-500";
 }
 
 export default function RsvpView({ guests: initial, events, preview }) {
@@ -82,11 +83,11 @@ export default function RsvpView({ guests: initial, events, preview }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("rsvp.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("rsvp.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("rsvp.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("rsvp.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
         </div>
       </div>
 
@@ -96,10 +97,10 @@ export default function RsvpView({ guests: initial, events, preview }) {
           <Card key={ev.id}>
             <CardBody>
               <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-semibold text-ink-900">{ev.name?.[locale] || ev.name?.en}</h3>
+                <h3 className="text-sm font-semibold text-stone-900">{ev.name?.[locale] || ev.name?.en}</h3>
                 <Badge tone={ev.code === "HP" ? "hp" : "kk"}>{ev.code}</Badge>
               </div>
-              <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-ink-100">
+              <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
                 <div className="h-full bg-emerald-500" style={{ width: `${barPct(confirmed, invited)}%` }} />
                 <div className="h-full bg-amber-400" style={{ width: `${barPct(pending, invited)}%` }} />
                 <div className="h-full bg-red-500" style={{ width: `${barPct(declined, invited)}%` }} />
@@ -108,7 +109,7 @@ export default function RsvpView({ guests: initial, events, preview }) {
                 <Mini label={t("rsvp.confirmed")} value={confirmed} tone="text-emerald-700" />
                 <Mini label={t("rsvp.pending")} value={pending} tone="text-amber-700" />
                 <Mini label={t("rsvp.declined")} value={declined} tone="text-red-700" />
-                <Mini label={t("rsvp.responseRate")} value={`${rate}%`} tone="text-ink-700" />
+                <Mini label={t("rsvp.responseRate")} value={`${rate}%`} tone="text-stone-700" />
               </div>
             </CardBody>
           </Card>
@@ -120,14 +121,14 @@ export default function RsvpView({ guests: initial, events, preview }) {
         <CardHeader title={t("rsvp.matrix")} subtitle={t("rsvp.clickHint")} />
         <CardBody className="pt-0">
           {cols.length === 0 ? (
-            <p className="py-8 text-center text-sm text-ink-400">{t("rsvp.noEvents")}</p>
+            <p className="py-8 text-center text-sm text-stone-400">{t("rsvp.noEvents")}</p>
           ) : rows.length === 0 ? (
-            <p className="py-8 text-center text-sm text-ink-400">{t("rsvp.noGuests")}</p>
+            <p className="py-8 text-center text-sm text-stone-400">{t("rsvp.noGuests")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="text-ink-500">
+                  <tr className="text-stone-500">
                     <th className="sticky left-0 z-10 bg-white py-2 pr-3 text-left font-medium">
                       {t("guests.title")}
                     </th>
@@ -135,7 +136,7 @@ export default function RsvpView({ guests: initial, events, preview }) {
                       <th key={ev.id} className="px-2 py-2 text-center font-medium">
                         <div className="flex flex-col items-center gap-1">
                           <Badge tone={ev.code === "HP" ? "hp" : "kk"}>{ev.code}</Badge>
-                          <span className="max-w-[7rem] truncate text-[11px] text-ink-400" title={ev.name?.[locale] || ev.name?.en}>
+                          <span className="max-w-[7rem] truncate text-[11px] text-stone-400" title={ev.name?.[locale] || ev.name?.en}>
                             {ev.name?.[locale] || ev.name?.en}
                           </span>
                         </div>
@@ -145,9 +146,9 @@ export default function RsvpView({ guests: initial, events, preview }) {
                 </thead>
                 <tbody>
                   {rows.map((g) => (
-                    <tr key={g.id} className="border-t border-ink-100">
+                    <tr key={g.id} className="border-t border-stone-100">
                       <td className="sticky left-0 z-10 bg-white py-2 pr-3">
-                        <span className="font-medium text-ink-800">{g.full_name}</span>
+                        <span className="font-medium text-stone-800">{g.full_name}</span>
                       </td>
                       {cols.map((ev) => {
                         const s = statusOf(g, ev.id);
@@ -166,7 +167,7 @@ export default function RsvpView({ guests: initial, events, preview }) {
                                   onClick={() => remove(g, ev.id)}
                                   title={t("common.remove")}
                                   aria-label={t("common.remove")}
-                                  className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 place-items-center rounded-full bg-ink-700 text-[9px] text-white group-hover:grid"
+                                  className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 place-items-center rounded-full bg-stone-700 text-[9px] text-white group-hover:grid"
                                 >
                                   ×
                                 </button>
@@ -196,7 +197,7 @@ function Mini({ label, value, tone }) {
   return (
     <div>
       <p className={`font-serif text-base font-semibold ${tone}`}>{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-ink-400">{label}</p>
+      <p className="text-[10px] uppercase tracking-wide text-stone-400">{label}</p>
     </div>
   );
 }

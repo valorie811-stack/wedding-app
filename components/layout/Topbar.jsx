@@ -6,6 +6,7 @@ import { WEDDINGS } from "@/lib/theme";
 import { signOutAction } from "@/app/login/actions";
 import { cx } from "@/lib/cx";
 import Countdown from "@/components/dashboard/Countdown";
+import Icon from "@/components/ui/Icon";
 
 function ScopeSwitcher() {
   const { scope, setScope, t } = useApp();
@@ -15,14 +16,14 @@ function ScopeSwitcher() {
     { key: "KK", label: "🇲🇾 " + t("scope.KK") },
   ];
   return (
-    <div className="flex rounded-full bg-ink-100 p-0.5">
+    <div className="flex rounded-full bg-stone-100 p-0.5">
       {options.map((o) => (
         <button
           key={o.key}
           onClick={() => setScope(o.key)}
           className={cx(
             "rounded-full px-3 py-1 text-xs font-medium transition",
-            scope === o.key ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-800"
+            scope === o.key ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"
           )}
         >
           {o.label}
@@ -40,15 +41,15 @@ export default function Topbar({ member, onMenu }) {
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-ink-100 bg-white/85 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-stone-100 bg-white/85 backdrop-blur">
       {/* Row 1: controls */}
       <div className="flex items-center gap-3 px-4 py-2.5">
         <button
           onClick={onMenu}
-          className="grid h-9 w-9 place-items-center rounded-lg text-ink-600 hover:bg-ink-100 lg:hidden"
+          className="grid h-9 w-9 place-items-center rounded-lg text-stone-600 hover:bg-stone-100 lg:hidden"
           aria-label="Menu"
         >
-          ☰
+          <Icon name="menu" size={18} />
         </button>
 
         <div className="hidden sm:block">
@@ -57,14 +58,14 @@ export default function Topbar({ member, onMenu }) {
 
         <div className="ml-auto flex items-center gap-2">
           {/* Language */}
-          <div className="flex rounded-full bg-ink-100 p-0.5">
+          <div className="flex rounded-full bg-stone-100 p-0.5">
             {LOCALES.map((l) => (
               <button
                 key={l.code}
                 onClick={() => setLocale(l.code)}
                 className={cx(
                   "rounded-full px-2.5 py-1 text-xs font-medium transition",
-                  locale === l.code ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-800"
+                  locale === l.code ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"
                 )}
               >
                 {l.short}
@@ -76,10 +77,10 @@ export default function Topbar({ member, onMenu }) {
           {member && (
             <div className="flex items-center gap-2 pl-1">
               <div className="hidden text-right sm:block">
-                <p className="text-xs font-medium leading-tight text-ink-900">
+                <p className="text-xs font-medium leading-tight text-stone-900">
                   {member.full_name}
                 </p>
-                <p className="text-[10px] leading-tight text-ink-400">{t("common.signOut")}</p>
+                <p className="text-[10px] leading-tight text-stone-400">{t("common.signOut")}</p>
               </div>
               <button
                 onClick={signOut}
@@ -94,13 +95,13 @@ export default function Topbar({ member, onMenu }) {
       </div>
 
       {/* Row 2: dual countdowns */}
-      <div className="flex items-center gap-4 overflow-x-auto border-t border-ink-100 px-4 py-1.5 text-xs">
+      <div className="flex items-center gap-4 overflow-x-auto border-t border-stone-100 px-4 py-1.5 text-xs">
         <span className="flex items-center gap-1.5 whitespace-nowrap text-hp-700">
           <span>{WEDDINGS.HP.flag}</span>
           <span className="font-medium">{WEDDINGS.HP.city[locale]}</span>
           <Countdown target={WEDDINGS.HP.date} variant="compact" accent="hp" />
         </span>
-        <span className="h-3 w-px bg-ink-200" />
+        <span className="h-3 w-px bg-stone-200" />
         <span className="flex items-center gap-1.5 whitespace-nowrap text-kk-700">
           <span>{WEDDINGS.KK.flag}</span>
           <span className="font-medium">{WEDDINGS.KK.city[locale]}</span>

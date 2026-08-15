@@ -19,14 +19,14 @@ export default function SettingsView({ canPersist = true }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("settings.title")}</h1>
-        <p className="mt-0.5 text-sm text-ink-500">{t("settings.subtitle")}</p>
+        <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("settings.title")}</h1>
+        <p className="mt-0.5 text-sm text-stone-500">{t("settings.subtitle")}</p>
       </div>
 
       <Card className="max-w-lg">
         <CardHeader>
-          <h2 className="text-sm font-semibold text-ink-900">{t("settings.changePinTitle")}</h2>
-          <p className="mt-0.5 text-xs text-ink-500">{t("settings.changePinSubtitle")}</p>
+          <h2 className="text-sm font-semibold text-stone-900">{t("settings.changePinTitle")}</h2>
+          <p className="mt-0.5 text-xs text-stone-500">{t("settings.changePinSubtitle")}</p>
         </CardHeader>
         <CardBody>
           {!canPersist ? (
@@ -103,7 +103,7 @@ export default function SettingsView({ canPersist = true }) {
 
       <Card className="max-w-lg">
         <CardHeader>
-          <h2 className="text-sm font-semibold text-ink-900">{t("settings.sessionTitle")}</h2>
+          <h2 className="text-sm font-semibold text-stone-900">{t("settings.sessionTitle")}</h2>
         </CardHeader>
         <CardBody>
           <form action={signOutAction}>

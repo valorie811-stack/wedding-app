@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveTable, deleteTable, assignGuest, unassignGuest } from "@/app/(app)/tables/actions";
+import Icon from "@/components/ui/Icon";
 
 export default function TablesView({ tables: initTables, assignments: initAsg, guests, preview }) {
   const { t, scope } = useApp();
@@ -60,10 +61,10 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("tables.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("tables.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("tables.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("tables.subtitle")}</p>
         </div>
-        {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+        {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
       </div>
 
       {weddings.map((w) => {
@@ -75,7 +76,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
         return (
           <section key={w.code} className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 font-serif text-lg font-semibold text-ink-800">
+              <h2 className="flex items-center gap-2 font-serif text-lg font-semibold text-stone-800">
                 <span>{w.flag}</span> {w.city.en}
                 <Badge tone={w.code === "HP" ? "hp" : "kk"}>{w.code}</Badge>
               </h2>
@@ -92,13 +93,13 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                   if (drag && drag.code === w.code && drag.fromTableId) doUnassign(drag.fromTableId, drag.guestId);
                   setDrag(null);
                 }}
-                className="rounded-2xl border border-dashed border-ink-200 bg-ink-50/50 p-3"
+                className="rounded-2xl border border-dashed border-stone-200 bg-stone-50/50 p-3"
               >
-                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
                   {t("tables.unassigned")} · {pool.length}
                 </p>
                 {pool.length === 0 ? (
-                  <p className="px-1 py-4 text-center text-xs text-ink-400">{t("tables.poolEmpty")}</p>
+                  <p className="px-1 py-4 text-center text-xs text-stone-400">{t("tables.poolEmpty")}</p>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {pool.map((g) => (
@@ -107,7 +108,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                         draggable
                         onDragStart={() => setDrag({ guestId: g.id, code: w.code, fromTableId: null })}
                         onDragEnd={() => setDrag(null)}
-                        className="cursor-grab rounded-full bg-white px-2.5 py-1 text-xs text-ink-700 shadow-card active:cursor-grabbing"
+                        className="cursor-grab rounded-full bg-white px-2.5 py-1 text-xs text-stone-700 shadow-card active:cursor-grabbing"
                       >
                         {g.full_name}
                       </span>
@@ -118,7 +119,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
 
               {/* Tables */}
               {wTables.length === 0 ? (
-                <div className="lg:col-span-2 grid place-items-center rounded-2xl border border-dashed border-ink-200 py-10 text-sm text-ink-400">
+                <div className="lg:col-span-2 grid place-items-center rounded-2xl border border-dashed border-stone-200 py-10 text-sm text-stone-400">
                   {t("tables.noTables")}
                 </div>
               ) : (
@@ -139,19 +140,19 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                       className="card flex flex-col p-3"
                     >
                       <div className="group mb-2 flex items-center justify-between gap-2">
-                        <h3 className="font-medium text-ink-900">{tbl.name}</h3>
+                        <h3 className="font-medium text-stone-900">{tbl.name}</h3>
                         <div className="flex items-center gap-1">
                           <Badge tone={over ? "red" : "neutral"}>
                             {seated.length}/{tbl.capacity}
                           </Badge>
-                          <button onClick={() => openEditTable(tbl)} aria-label={t("common.edit")} className="grid h-6 w-6 place-items-center rounded text-ink-400 opacity-100 transition hover:bg-ink-100 hover:text-ink-700 sm:opacity-0 sm:group-hover:opacity-100">✎</button>
-                          <button onClick={() => handleDeleteTable(tbl)} aria-label={t("common.delete")} className="grid h-6 w-6 place-items-center rounded text-ink-400 opacity-100 transition hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100">🗑</button>
+                          <button onClick={() => openEditTable(tbl)} aria-label={t("common.edit")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-stone-100 hover:text-stone-700 sm:opacity-0 sm:group-hover:opacity-100"><Icon name="edit" size={13} /></button>
+                          <button onClick={() => handleDeleteTable(tbl)} aria-label={t("common.delete")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100"><Icon name="trash" size={13} /></button>
                         </div>
                       </div>
 
                       <div className="flex flex-1 flex-wrap content-start gap-1.5">
                         {seated.length === 0 && (
-                          <p className="w-full py-3 text-center text-xs text-ink-300">{t("tables.dropHere")}</p>
+                          <p className="w-full py-3 text-center text-xs text-stone-300">{t("tables.dropHere")}</p>
                         )}
                         {seated.map(({ asg, guest }) => (
                           <span
@@ -178,7 +179,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                         <select
                           value=""
                           onChange={(e) => e.target.value && doAssign(tbl.id, e.target.value, w.code)}
-                          className="mt-2 rounded-lg border border-ink-200 bg-white px-2 py-1 text-xs text-ink-500"
+                          className="mt-2 rounded-lg border border-stone-500 bg-white px-2 py-1 text-xs text-stone-700"
                         >
                           <option value="">+ {t("tables.addGuest")}</option>
                           {pool.map((g) => (

@@ -7,7 +7,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "audit:theme": "node scripts/audit-theme.js && node scripts/build-icons.mjs --check",
+    "icons:build": "node scripts/build-icons.mjs",
+    "icons:verify": "node scripts/build-icons.mjs --check",
+    "pdf-fonts:build": "node scripts/build-pdf-fonts.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.0.0",

@@ -27,7 +27,7 @@ export default function Countdown({ target, variant = "large", accent = "hp" }) 
 
   if (!time) {
     // Pre-hydration placeholder keeps server & client markup aligned.
-    return <span className="text-ink-300">—</span>;
+    return <span className="text-stone-300">—</span>;
   }
 
   if (variant === "compact") {
@@ -47,7 +47,7 @@ export default function Countdown({ target, variant = "large", accent = "hp" }) 
       <span className={`tabular-nums text-2xl font-bold ${accentText}`}>
         {String(value).padStart(2, "0")}
       </span>
-      <span className="text-[10px] uppercase tracking-wide text-ink-400">{label}</span>
+      <span className="text-[10px] uppercase tracking-wide text-stone-400">{label}</span>
     </div>
   );
 
