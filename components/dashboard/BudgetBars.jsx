@@ -7,7 +7,7 @@ export default function BudgetBars({ byCategory = [] }) {
   const max = Math.max(1, ...byCategory.map((c) => c.planned));
 
   if (!byCategory.length) {
-    return <p className="text-sm text-ink-400">—</p>;
+    return <p className="text-sm text-stone-400">—</p>;
   }
 
   return (
@@ -17,15 +17,15 @@ export default function BudgetBars({ byCategory = [] }) {
         return (
           <li key={c.category}>
             <div className="mb-1 flex items-baseline justify-between text-xs">
-              <span className="font-medium text-ink-700">{c.category}</span>
-              <span className={over ? "text-red-600" : "text-ink-500"}>
-                {formatAUD(c.actual)} <span className="text-ink-400">/ {formatAUD(c.planned)}</span>
+              <span className="font-medium text-stone-700">{c.category}</span>
+              <span className={over ? "text-red-600" : "text-stone-500"}>
+                {formatAUD(c.actual)} <span className="text-stone-400">/ {formatAUD(c.planned)}</span>
               </span>
             </div>
-            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-ink-100">
+            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
               {/* planned track */}
               <div
-                className="absolute inset-y-0 left-0 rounded-full bg-ink-200"
+                className="absolute inset-y-0 left-0 rounded-full bg-stone-200"
                 style={{ width: `${(c.planned / max) * 100}%` }}
               />
               {/* actual fill */}

@@ -2,8 +2,13 @@
 
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { useApp } from "@/context/AppContext";
+import tokens from "@/lib/tokens";
 
-const COLORS = { confirmed: "#0d9488", pending: "#fbbf24", declined: "#e11d48" };
+const COLORS = {
+  confirmed: tokens.matcha[600],
+  pending: tokens.gold[500],
+  declined: tokens.hp[600],
+};
 
 export default function RsvpDonut({ confirmed = 0, pending = 0, declined = 0 }) {
   const { t } = useApp();
@@ -29,14 +34,14 @@ export default function RsvpDonut({ confirmed = 0, pending = 0, declined = 0 }) 
               stroke="none"
             >
               {(total ? data : [{ key: "empty" }]).map((d) => (
-                <Cell key={d.key} fill={total ? COLORS[d.key] : "#e2e8f0"} />
+                <Cell key={d.key} fill={total ? COLORS[d.key] : tokens.stone[200]} />
               ))}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-ink-900">{confirmed}</span>
-          <span className="text-[10px] uppercase tracking-wide text-ink-400">
+          <span className="text-2xl font-bold text-stone-900">{confirmed}</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-400">
             {t("dashboard.confirmed")}
           </span>
         </div>
@@ -46,8 +51,8 @@ export default function RsvpDonut({ confirmed = 0, pending = 0, declined = 0 }) 
         {data.map((d) => (
           <li key={d.key} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLORS[d.key] }} />
-            <span className="text-ink-600">{d.label}</span>
-            <span className="ml-auto font-semibold text-ink-900">{d.value}</span>
+            <span className="text-stone-600">{d.label}</span>
+            <span className="ml-auto font-semibold text-stone-900">{d.value}</span>
           </li>
         ))}
       </ul>

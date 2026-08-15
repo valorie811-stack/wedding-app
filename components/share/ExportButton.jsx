@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Button from "@/components/ui/Button";
 import { exportXLSX, downloadCSV } from "@/lib/export";
+import Icon from "@/components/ui/Icon";
 
 // getRows() must return an array of flat objects (column -> value).
 export default function ExportButton({ getRows, filename = "export", sheetName = "Sheet1" }) {
@@ -43,19 +44,19 @@ export default function ExportButton({ getRows, filename = "export", sheetName =
   return (
     <div className="relative" ref={ref}>
       <Button variant="outline" onClick={() => setOpen((o) => !o)} disabled={busy}>
-        {busy ? t("export.exporting") : `⬇ ${t("export.title")}`}
+        {busy ? t("export.exporting") : <><Icon name="download" size={14} />{t("export.title")}</>}
       </Button>
       {open && (
-        <div className="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-ink-200 bg-white py-1 shadow-pop">
+        <div className="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-pop">
           <button
             onClick={() => doExport("xlsx")}
-            className="block w-full px-4 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+            className="block w-full px-4 py-2 text-left text-sm text-stone-700 hover:bg-stone-50"
           >
             📊 {t("export.excel")}
           </button>
           <button
             onClick={() => doExport("csv")}
-            className="block w-full px-4 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
+            className="block w-full px-4 py-2 text-left text-sm text-stone-700 hover:bg-stone-50"
           >
             📄 {t("export.csv")}
           </button>

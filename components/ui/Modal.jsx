@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { cx } from "@/lib/cx";
+import Icon from "@/components/ui/Icon";
 
 // Lightweight accessible modal: backdrop click + Escape to close, body scroll
 // lock while open. No portal — fixed positioning is enough for this app.
@@ -25,7 +26,7 @@ export default function Modal({ open, onClose, title, children, footer, size = "
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-stone-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
@@ -40,20 +41,20 @@ export default function Modal({ open, onClose, title, children, footer, size = "
         )}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">
-            <h3 className="font-serif text-lg font-semibold text-ink-900">{title}</h3>
+          <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
+            <h3 className="font-serif text-lg font-semibold text-stone-900">{title}</h3>
             <button
               onClick={onClose}
               aria-label="Close"
-              className="grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+              className="grid h-8 w-8 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
             >
-              ✕
+              <Icon name="close" size={16} />
             </button>
           </div>
         )}
         <div className="px-5 py-4">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-ink-100 px-5 py-4">{footer}</div>
+          <div className="flex justify-end gap-2 border-t border-stone-100 px-5 py-4">{footer}</div>
         )}
       </div>
     </div>

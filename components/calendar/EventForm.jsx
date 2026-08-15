@@ -122,10 +122,10 @@ export default function EventForm({ form, setForm, onSave, onDelete, onClose, t 
           <input className="input" value={form.location} onChange={set("location")} />
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-ink-700">
+        <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-ink-300 text-gold-600"
+            className="h-4 w-4 rounded border-stone-500 text-gold-600"
             checked={form.halal}
             onChange={(e) => setForm((f) => ({ ...f, halal: e.target.checked }))}
           />

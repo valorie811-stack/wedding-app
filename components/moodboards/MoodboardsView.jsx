@@ -8,8 +8,21 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveMoodItem, deleteMoodItem } from "@/app/(app)/moodboards/actions";
+import tokens from "@/lib/tokens";
+import Icon from "@/components/ui/Icon";
 
-const PRESETS = ["#be123c", "#9f1239", "#d4af37", "#b8860b", "#0d9488", "#14b8a6", "#fee2e2", "#ccfbf1", "#1e293b", "#f8fafc"];
+const PRESETS = [
+  tokens.hp[600],
+  tokens.hp[800],
+  tokens.gold[500],
+  tokens.gold[700],
+  tokens.kk[600],
+  tokens.kk[400],
+  tokens.hp[100],
+  tokens.kk[100],
+  tokens.matcha[900],
+  tokens.matcha[100],
+];
 const blank = { id: null, code: "HP", board: "", title: "", image_url: "", swatches: [], notes: "" };
 
 function normalizeHex(v) {
@@ -80,11 +93,11 @@ export default function MoodboardsView({ items: initial, preview }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">{t("moodboards.title")}</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{t("moodboards.subtitle")}</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("moodboards.title")}</h1>
+          <p className="mt-0.5 text-sm text-stone-500">{t("moodboards.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <Button variant="gold" onClick={openNew}>+ {t("moodboards.addItem")}</Button>
         </div>
       </div>
@@ -92,13 +105,13 @@ export default function MoodboardsView({ items: initial, preview }) {
       {visible.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="py-10 text-center text-sm text-ink-400">{t("moodboards.noItems")}</p>
+            <p className="py-10 text-center text-sm text-stone-400">{t("moodboards.noItems")}</p>
           </CardBody>
         </Card>
       ) : (
         boards.map(([board, list]) => (
           <section key={board} className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-ink-800">{board}</h2>
+            <h2 className="font-serif text-lg font-semibold text-stone-800">{board}</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((m) => (
                 <Card key={m.id} className="group overflow-hidden">
@@ -113,11 +126,11 @@ export default function MoodboardsView({ items: initial, preview }) {
                       }}
                     />
                   ) : (
-                    <div className="grid h-40 w-full place-items-center bg-ink-100 text-3xl">🎨</div>
+                    <div className="grid h-40 w-full place-items-center bg-stone-100 text-3xl">🎨</div>
                   )}
                   <CardBody className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-medium text-ink-900">{m.title || "—"}</h3>
+                      <h3 className="font-medium text-stone-900">{m.title || "—"}</h3>
                       {m.code ? (
                         <Badge tone={m.code === "HP" ? "hp" : "kk"}>{m.code}</Badge>
                       ) : (
@@ -130,16 +143,16 @@ export default function MoodboardsView({ items: initial, preview }) {
                           <span
                             key={i}
                             title={c}
-                            className="h-5 w-5 rounded-full border border-ink-200"
+                            className="h-5 w-5 rounded-full border border-stone-200"
                             style={{ background: c }}
                           />
                         ))}
                       </div>
                     )}
-                    {m.notes && <p className="text-xs text-ink-500">{m.notes}</p>}
+                    {m.notes && <p className="text-xs text-stone-500">{m.notes}</p>}
                     <div className="flex justify-end gap-1 pt-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                      <button onClick={() => openEdit(m)} className="rounded-lg px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-700">✎ {t("common.edit")}</button>
-                      <button onClick={() => handleDelete(m)} className="rounded-lg px-2 py-1 text-xs text-ink-500 hover:bg-red-50 hover:text-red-600">🗑 {t("common.delete")}</button>
+                      <button onClick={() => openEdit(m)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"><Icon name="edit" size={13} /> {t("common.edit")}</button>
+                      <button onClick={() => handleDelete(m)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"><Icon name="trash" size={13} /> {t("common.delete")}</button>
                     </div>
                   </CardBody>
                 </Card>
@@ -217,7 +230,7 @@ function MoodForm({ form, setForm, onSave, onClose, t }) {
                 key={c}
                 onClick={() => toggleSwatch(c)}
                 title={c}
-                className={`h-7 w-7 rounded-full border-2 ${form.swatches.includes(c) ? "border-ink-700" : "border-ink-200"}`}
+                className={`h-7 w-7 rounded-full border-2 ${form.swatches.includes(c) ? "border-stone-700" : "border-stone-200"}`}
                 style={{ background: c }}
               />
             ))}
@@ -240,9 +253,9 @@ function MoodForm({ form, setForm, onSave, onClose, t }) {
           {form.swatches.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {form.swatches.map((c) => (
-                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-ink-100 py-0.5 pl-1 pr-2 text-xs">
-                  <span className="h-4 w-4 rounded-full border border-ink-200" style={{ background: c }} />
-                  <button type="button" onClick={() => toggleSwatch(c)} className="text-ink-400 hover:text-red-600">×</button>
+                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-stone-100 py-0.5 pl-1 pr-2 text-xs">
+                  <span className="h-4 w-4 rounded-full border border-stone-200" style={{ background: c }} />
+                  <button type="button" onClick={() => toggleSwatch(c)} className="text-stone-400 hover:text-red-600">×</button>
                 </span>
               ))}
             </div>
