@@ -87,29 +87,34 @@ where not exists (select 1 from tasks t where t.title = 'Finalise guest list acr
 
 -- Guests + per-event RSVP ----------------------------------------------------
 -- 18 sample guests; each linked to one reception with a varied RSVP status.
-insert into guests (full_name, email, side, plus_one, dietary)
-select g.full_name, g.email, g.side, g.plus_one, g.dietary
+-- Keyed on full_name, not email: that column was dropped in e4a5668 and this
+-- file was never updated, so every statement here errored until now. full_name
+-- is not unique, which makes the guard weaker than the old one — it matches the
+-- convention already used elsewhere in this file (tasks guard on title, events
+-- on name_en), and it is the only natural key left on the table.
+insert into guests (full_name, side, plus_one, plus_one_name, dietary)
+select g.full_name, g.side, g.plus_one, g.plus_one_name, g.dietary
 from (values
-  ('Nguyễn Văn An','an@example.com','bride',  true,  '{}'::text[]),
-  ('Trần Thị Bình','binh@example.com','bride', false, '{vegetarian}'::text[]),
-  ('Lê Hoàng Cường','cuong@example.com','groom',true,  '{}'::text[]),
-  ('Phạm Thu Dung','dung@example.com','bride', false, '{}'::text[]),
-  ('Đỗ Minh Đức','duc@example.com','groom',   true,  '{}'::text[]),
-  ('Vũ Thị Hà','ha@example.com','bride',       false, '{}'::text[]),
-  ('Hoàng Văn Hải','hai@example.com','groom',  false, '{}'::text[]),
-  ('Bùi Thị Lan','lan@example.com','bride',    true,  '{}'::text[]),
-  ('Tan Wei Ming','weiming@example.com','groom', true, '{}'::text[]),
-  ('Lim Mei Ling','meiling@example.com','bride',false,'{}'::text[]),
-  ('Wong Kah Wai','kahwai@example.com','groom', true, '{}'::text[]),
-  ('Siti Nurhaliza','siti@example.com','bride', false,'{halal}'::text[]),
-  ('Ahmad Faizal','faizal@example.com','groom', true, '{halal}'::text[]),
-  ('Chong Li Hua','lihua@example.com','bride',  false,'{}'::text[]),
-  ('Goh Boon Hai','boonhai@example.com','groom',false,'{}'::text[]),
-  ('Aishah Binti Omar','aishah@example.com','bride', true,'{halal}'::text[]),
-  ('James Carter','james@example.com','groom',  true, '{}'::text[]),
-  ('Emily Watson','emily@example.com','bride',  false,'{vegan}'::text[])
-) as g(full_name,email,side,plus_one,dietary)
-where not exists (select 1 from guests gg where gg.email = g.email);
+  ('Nguyễn Văn An',     'bride', true,  'Nguyễn Thị Mai',  '{}'::text[]),
+  ('Trần Thị Bình',     'bride', false, null,              '{vegetarian}'::text[]),
+  ('Lê Hoàng Cường',    'groom', true,  'Phạm Thị Hương',  '{}'::text[]),
+  ('Phạm Thu Dung',     'bride', false, null,              '{}'::text[]),
+  ('Đỗ Minh Đức',       'groom', true,  'Trần Thị Ngọc',   '{}'::text[]),
+  ('Vũ Thị Hà',         'bride', false, null,              '{}'::text[]),
+  ('Hoàng Văn Hải',     'groom', false, null,              '{}'::text[]),
+  ('Bùi Thị Lan',       'bride', true,  'Bùi Văn Tú',      '{}'::text[]),
+  ('Tan Wei Ming',      'groom', true,  'Tan Siew Lan',    '{}'::text[]),
+  ('Lim Mei Ling',      'bride', false, null,              '{}'::text[]),
+  ('Wong Kah Wai',      'groom', true,  'Wong Pui Yee',    '{}'::text[]),
+  ('Siti Nurhaliza',    'bride', false, null,              '{halal}'::text[]),
+  ('Ahmad Faizal',      'groom', true,  'Nurul Ain',       '{halal}'::text[]),
+  ('Chong Li Hua',      'bride', false, null,              '{}'::text[]),
+  ('Goh Boon Hai',      'groom', false, null,              '{}'::text[]),
+  ('Aishah Binti Omar', 'bride', true,  'Omar Bin Yusof',  '{halal}'::text[]),
+  ('James Carter',      'groom', true,  'Sarah Carter',    '{}'::text[]),
+  ('Emily Watson',      'bride', false, null,              '{vegan}'::text[])
+) as g(full_name,side,plus_one,plus_one_name,dietary)
+where not exists (select 1 from guests gg where gg.full_name = g.full_name);
 
 -- Link guests to receptions with statuses (idempotent).
 with hp_recep as (select id from events where name_en = 'Wedding Reception (Lễ Cưới)' limit 1),
@@ -118,27 +123,27 @@ with hp_recep as (select id from events where name_en = 'Wedding Reception (Lễ
 insert into guest_events (guest_id, event_id, rsvp_status)
 select gid, eid, status from (
   -- HP reception: 6 confirmed, 1 pending, 1 declined
-  select (select id from guests where email='an@example.com') gid, (select id from hp_recep) eid, 'confirmed' status union all
-  select (select id from guests where email='binh@example.com'), (select id from hp_recep), 'confirmed' union all
-  select (select id from guests where email='cuong@example.com'),(select id from hp_recep), 'confirmed' union all
-  select (select id from guests where email='dung@example.com'), (select id from hp_recep), 'confirmed' union all
-  select (select id from guests where email='duc@example.com'),  (select id from hp_recep), 'confirmed' union all
-  select (select id from guests where email='ha@example.com'),   (select id from hp_recep), 'confirmed' union all
-  select (select id from guests where email='hai@example.com'),  (select id from hp_recep), 'pending'   union all
-  select (select id from guests where email='lan@example.com'),  (select id from hp_recep), 'declined'  union all
+  select (select id from guests where full_name='Nguyễn Văn An') gid, (select id from hp_recep) eid, 'confirmed' status union all
+  select (select id from guests where full_name='Trần Thị Bình'), (select id from hp_recep), 'confirmed' union all
+  select (select id from guests where full_name='Lê Hoàng Cường'),(select id from hp_recep), 'confirmed' union all
+  select (select id from guests where full_name='Phạm Thu Dung'), (select id from hp_recep), 'confirmed' union all
+  select (select id from guests where full_name='Đỗ Minh Đức'),  (select id from hp_recep), 'confirmed' union all
+  select (select id from guests where full_name='Vũ Thị Hà'),   (select id from hp_recep), 'confirmed' union all
+  select (select id from guests where full_name='Hoàng Văn Hải'),  (select id from hp_recep), 'pending'   union all
+  select (select id from guests where full_name='Bùi Thị Lan'),  (select id from hp_recep), 'declined'  union all
   -- KK banquet: 5 confirmed, 2 pending
-  select (select id from guests where email='weiming@example.com'),(select id from kk_banq), 'confirmed' union all
-  select (select id from guests where email='meiling@example.com'),(select id from kk_banq), 'confirmed' union all
-  select (select id from guests where email='kahwai@example.com'), (select id from kk_banq), 'confirmed' union all
-  select (select id from guests where email='lihua@example.com'),  (select id from kk_banq), 'confirmed' union all
-  select (select id from guests where email='boonhai@example.com'),(select id from kk_banq), 'confirmed' union all
-  select (select id from guests where email='james@example.com'),  (select id from kk_banq), 'pending'   union all
-  select (select id from guests where email='emily@example.com'),  (select id from kk_banq), 'pending'   union all
+  select (select id from guests where full_name='Tan Wei Ming'),(select id from kk_banq), 'confirmed' union all
+  select (select id from guests where full_name='Lim Mei Ling'),(select id from kk_banq), 'confirmed' union all
+  select (select id from guests where full_name='Wong Kah Wai'), (select id from kk_banq), 'confirmed' union all
+  select (select id from guests where full_name='Chong Li Hua'),  (select id from kk_banq), 'confirmed' union all
+  select (select id from guests where full_name='Goh Boon Hai'),(select id from kk_banq), 'confirmed' union all
+  select (select id from guests where full_name='James Carter'),  (select id from kk_banq), 'pending'   union all
+  select (select id from guests where full_name='Emily Watson'),  (select id from kk_banq), 'pending'   union all
   -- KK Halal lunch: 3 confirmed, 1 pending
-  select (select id from guests where email='siti@example.com'),   (select id from kk_lunch), 'confirmed' union all
-  select (select id from guests where email='faizal@example.com'), (select id from kk_lunch), 'confirmed' union all
-  select (select id from guests where email='aishah@example.com'), (select id from kk_lunch), 'confirmed' union all
-  select (select id from guests where email='lihua@example.com'),  (select id from kk_lunch), 'pending'
+  select (select id from guests where full_name='Siti Nurhaliza'),   (select id from kk_lunch), 'confirmed' union all
+  select (select id from guests where full_name='Ahmad Faizal'), (select id from kk_lunch), 'confirmed' union all
+  select (select id from guests where full_name='Aishah Binti Omar'), (select id from kk_lunch), 'confirmed' union all
+  select (select id from guests where full_name='Chong Li Hua'),  (select id from kk_lunch), 'pending'
 ) rows
 where gid is not null and eid is not null
 on conflict (guest_id, event_id) do nothing;
@@ -161,11 +166,11 @@ with hp_t1 as (select id from seating_tables where name = 'Family Table 1' limit
      kk_h  as (select id from seating_tables where name = 'Head Table' limit 1)
 insert into seating_assignments (table_id, guest_id)
 select tid, gid from (
-  select (select id from hp_t1) tid, (select id from guests where email='an@example.com') gid union all
-  select (select id from hp_t1), (select id from guests where email='binh@example.com') union all
-  select (select id from hp_t1), (select id from guests where email='cuong@example.com') union all
-  select (select id from kk_h),  (select id from guests where email='weiming@example.com') union all
-  select (select id from kk_h),  (select id from guests where email='meiling@example.com')
+  select (select id from hp_t1) tid, (select id from guests where full_name='Nguyễn Văn An') gid union all
+  select (select id from hp_t1), (select id from guests where full_name='Trần Thị Bình') union all
+  select (select id from hp_t1), (select id from guests where full_name='Lê Hoàng Cường') union all
+  select (select id from kk_h),  (select id from guests where full_name='Tan Wei Ming') union all
+  select (select id from kk_h),  (select id from guests where full_name='Lim Mei Ling')
 ) rows
 where tid is not null and gid is not null
 on conflict (table_id, guest_id) do nothing;
