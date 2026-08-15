@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveAttireItem, deleteAttireItem } from "@/app/(app)/attire/actions";
+import Icon from "@/components/ui/Icon";
 
 const ROLE_ORDER = ["bride", "groom", "family", "party", "guest", "other"];
 const STATUSES = ["inspiration", "confirmed"];
@@ -76,7 +77,7 @@ export default function AttireView({ items: initial, preview }) {
           <p className="mt-0.5 text-sm text-stone-500">{t("attire.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <Button variant="gold" onClick={openNew}>+ {t("attire.addItem")}</Button>
         </div>
       </div>
@@ -117,8 +118,8 @@ export default function AttireView({ items: initial, preview }) {
                     </Badge>
                     {a.notes && <p className="text-xs text-stone-500">{a.notes}</p>}
                     <div className="flex justify-end gap-1 pt-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                      <button onClick={() => openEdit(a)} className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700">✎ {t("common.edit")}</button>
-                      <button onClick={() => handleDelete(a)} className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600">🗑 {t("common.delete")}</button>
+                      <button onClick={() => openEdit(a)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"><Icon name="edit" size={13} /> {t("common.edit")}</button>
+                      <button onClick={() => handleDelete(a)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"><Icon name="trash" size={13} /> {t("common.delete")}</button>
                     </div>
                   </CardBody>
                 </Card>

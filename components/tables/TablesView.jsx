@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveTable, deleteTable, assignGuest, unassignGuest } from "@/app/(app)/tables/actions";
+import Icon from "@/components/ui/Icon";
 
 export default function TablesView({ tables: initTables, assignments: initAsg, guests, preview }) {
   const { t, scope } = useApp();
@@ -63,7 +64,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
           <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("tables.title")}</h1>
           <p className="mt-0.5 text-sm text-stone-500">{t("tables.subtitle")}</p>
         </div>
-        {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+        {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
       </div>
 
       {weddings.map((w) => {
@@ -144,8 +145,8 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                           <Badge tone={over ? "red" : "neutral"}>
                             {seated.length}/{tbl.capacity}
                           </Badge>
-                          <button onClick={() => openEditTable(tbl)} aria-label={t("common.edit")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-stone-100 hover:text-stone-700 sm:opacity-0 sm:group-hover:opacity-100">✎</button>
-                          <button onClick={() => handleDeleteTable(tbl)} aria-label={t("common.delete")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100">🗑</button>
+                          <button onClick={() => openEditTable(tbl)} aria-label={t("common.edit")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-stone-100 hover:text-stone-700 sm:opacity-0 sm:group-hover:opacity-100"><Icon name="edit" size={13} /></button>
+                          <button onClick={() => handleDeleteTable(tbl)} aria-label={t("common.delete")} className="grid h-6 w-6 place-items-center rounded text-stone-400 opacity-100 transition hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100"><Icon name="trash" size={13} /></button>
                         </div>
                       </div>
 

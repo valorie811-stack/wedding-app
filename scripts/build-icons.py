@@ -183,12 +183,35 @@ I["mark"] = [line((4.2, 3), (19.8, 3)),
              line((3, 15.1), (21, 15.1)),
              rect(5.3, 16.9, 13.4, 4.1)]
 
+# --- UI affordances (phase 1 of the emoji migration) ------------------------
+# These replace ✎ 🗑 ✕ ⬇ ☰ ⚠ ✓ at the call sites. Same 24x24 grid and tremor
+# as the rest, so an edit button reads as part of the set rather than as
+# whatever glyph the platform emoji font happens to supply.
+# Appended, for the same seed-stability reason as "mark".
+I["edit"] = [line((4.2, 19.8), (5.3, 15.6), (15.6, 5.3), (18.7, 8.4), (8.4, 18.7), (4.2, 19.8)),
+             line((13.4, 7.5), (16.5, 10.6))]
+I["trash"] = [line((3.6, 6.2), (20.4, 6.2)),
+              line((9.4, 6.2), (9.4, 4.2), (14.6, 4.2), (14.6, 6.2)),
+              line((5.6, 6.2), (6.6, 20.4), (17.4, 20.4), (18.4, 6.2)),
+              line((10, 9.8), (10.3, 17)), line((14, 9.8), (13.7, 17))]
+I["close"] = [line((6.2, 6.2), (17.8, 17.8)), line((17.8, 6.2), (6.2, 17.8))]
+I["download"] = [line((12, 3.6), (12, 15.4)),
+                 line((7.2, 10.8), (12, 15.6), (16.8, 10.8)),
+                 line((4.2, 18.6), (4.2, 20.4), (19.8, 20.4), (19.8, 18.6))]
+I["menu"] = [line((4, 7), (20, 7)), line((4, 12), (20, 12)), line((4, 17), (20, 17))]
+I["warning"] = [line((12, 3.8), (21.2, 19.8), (2.8, 19.8), (12, 3.8)),
+                line((12, 9.6), (12, 14.6)), line((12, 17.3), (12, 17.7))]
+I["check"] = [line((4.6, 12.6), (9.6, 17.6), (19.4, 6.4))]
+
 SEEDS = {"tables": 777, "attire": 5150,
          "redEnvelope": 8101, "tea": 8207, "giftTray": 8311, "rings": 8419,
-         "mark": 9001}
+         "mark": 9001,
+         "edit": 9101, "trash": 9103, "close": 9107, "download": 9109, "menu": 9113,
+         "warning": 9127, "check": 9131}
 ORDER = ["dashboard", "scheduler", "planning", "guests", "rsvp", "tables", "vendors",
          "budget", "finance", "moodboards", "attire", "traditions", "settings",
-         "redEnvelope", "tea", "giftTray", "rings", "mark"]
+         "redEnvelope", "tea", "giftTray", "rings", "mark",
+         "edit", "trash", "close", "download", "menu", "warning", "check"]
 
 def main():
     paths = {}
@@ -219,7 +242,13 @@ export const ICON_NAMES = Object.keys(PATHS);
  */
 export default function Icon({{ name, size = 20, className = "", ...rest }}) {{
   const d = PATHS[name];
-  if (!d) return null;
+  if (!d) {{
+    // Rendering nothing is invisible in review, so say so in development.
+    if (process.env.NODE_ENV !== "production") {{
+      console.warn('<Icon name="' + name + '"> is not a known icon. Known: ' + ICON_NAMES.join(", "));
+    }}
+    return null;
+  }}
   return (
     <svg
       viewBox="0 0 24 24"

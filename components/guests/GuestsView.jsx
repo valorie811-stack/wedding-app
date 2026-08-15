@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveGuest, deleteGuest } from "@/app/(app)/guests/actions";
 import ExportButton from "@/components/share/ExportButton";
+import Icon from "@/components/ui/Icon";
 
 const DIET_OPTIONS = ["halal", "vegetarian", "vegan", "gluten-free"];
 const SIDES = ["bride", "groom", "both"];
@@ -127,7 +128,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
           <p className="mt-0.5 text-sm text-stone-500">{t("guests.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <ExportButton getRows={exportRows} filename="guest-list" sheetName={t("guests.title")} />
           <Button variant="gold" onClick={openNew}>
             + {t("guests.addGuest")}
@@ -218,8 +219,8 @@ export default function GuestsView({ guests: initial, events, preview }) {
                     })}
                   </div>
                   <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                    <IconBtn label={t("common.edit")} onClick={() => openEdit(g)}>✎</IconBtn>
-                    <IconBtn label={t("common.delete")} onClick={() => handleDelete(g)}>🗑</IconBtn>
+                    <IconBtn label={t("common.edit")} onClick={() => openEdit(g)}><Icon name="edit" size={15} /></IconBtn>
+                    <IconBtn label={t("common.delete")} onClick={() => handleDelete(g)}><Icon name="trash" size={15} /></IconBtn>
                   </div>
                 </li>
               ))}

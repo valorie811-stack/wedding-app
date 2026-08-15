@@ -14,6 +14,7 @@ import { buildICS } from "@/lib/ics";
 import { downloadICS } from "@/lib/export";
 import { expandTaskOccurrences, isReminding } from "@/lib/recurrence";
 import tokens from "@/lib/tokens";
+import Icon from "@/components/ui/Icon";
 
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -301,9 +302,9 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
           <p className="mt-0.5 text-sm text-stone-500">{t("calendar.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <Button as="a" href={`/api/pdf/runsheet?scope=${scope}`} target="_blank" rel="noopener" variant="outline">
-            ⬇ PDF
+            <Icon name="download" size={14} />PDF
           </Button>
           <Button variant="outline" onClick={handleExport} title={t("calendar.exportHint")}>
             📅 {t("calendar.export")}
@@ -578,7 +579,7 @@ function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag,
             title={t("common.edit")}
             className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
           >
-            ✎
+            <Icon name="edit" size={14} />
           </button>
           <button
             onClick={del}
@@ -586,7 +587,7 @@ function DetailRow({ it, t, onEdit, onDelete, onEditTask, onDeleteTask, canDrag,
             title={t("common.delete")}
             className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-red-600"
           >
-            🗑
+            <Icon name="trash" size={14} />
           </button>
         </div>
       )}

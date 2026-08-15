@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveVendor, deleteVendor } from "@/app/(app)/vendors/actions";
 import ExportButton from "@/components/share/ExportButton";
+import Icon from "@/components/ui/Icon";
 
 const STATUSES = ["enquiry", "quoted", "booked", "paid", "cancelled"];
 const STATUS_TONE = {
@@ -134,7 +135,7 @@ export default function VendorsView({ vendors: initial, preview }) {
           <p className="mt-0.5 text-sm text-stone-500">{t("vendors.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <ExportButton getRows={exportRows} filename="vendor-list" sheetName={t("vendors.title")} />
           <Button variant="gold" onClick={openNew}>
             + {t("vendors.addVendor")}
@@ -251,7 +252,7 @@ function VendorCard({ v, t, onEdit, onDelete }) {
 
         {v.is_halal_certified && (
           <div>
-            <Badge tone="green">✓ {t("vendors.halalCertified")}</Badge>
+            <Badge tone="green"><Icon name="check" size={12} />{t("vendors.halalCertified")}</Badge>
           </div>
         )}
         {v.notes && <p className="text-xs italic text-stone-500">{v.notes}</p>}
@@ -259,15 +260,15 @@ function VendorCard({ v, t, onEdit, onDelete }) {
         <div className="mt-auto flex justify-end gap-1 pt-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
           <button
             onClick={() => onEdit(v)}
-            className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
           >
-            ✎ {t("common.edit")}
+            <Icon name="edit" size={13} /> {t("common.edit")}
           </button>
           <button
             onClick={() => onDelete(v)}
-            className="rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"
           >
-            🗑 {t("common.delete")}
+            <Icon name="trash" size={13} /> {t("common.delete")}
           </button>
         </div>
       </CardBody>

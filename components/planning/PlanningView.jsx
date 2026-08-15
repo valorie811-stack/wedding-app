@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { saveTask, updateTaskStatus, deleteTask } from "@/app/(app)/planning/actions";
 import TaskForm from "@/components/planning/TaskForm";
+import Icon from "@/components/ui/Icon";
 
 const COLUMNS = ["todo", "in_progress", "done"];
 const COL_ACCENT = {
@@ -132,7 +133,7 @@ export default function PlanningView({ tasks: initial, preview }) {
           <p className="mt-0.5 text-sm text-stone-500">{t("planning.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <Button variant="gold" onClick={openNew}>
             + {t("planning.addTask")}
           </Button>
@@ -212,14 +213,14 @@ export default function PlanningView({ tasks: initial, preview }) {
                           aria-label={t("common.edit")}
                           className="grid h-6 w-6 place-items-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-700"
                         >
-                          ✎
+                          <Icon name="edit" size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(task)}
                           aria-label={t("common.delete")}
                           className="grid h-6 w-6 place-items-center rounded text-stone-400 hover:bg-red-50 hover:text-red-600"
                         >
-                          🗑
+                          <Icon name="trash" size={14} />
                         </button>
                       </div>
                     </div>

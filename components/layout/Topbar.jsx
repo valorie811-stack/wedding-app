@@ -6,6 +6,7 @@ import { WEDDINGS } from "@/lib/theme";
 import { signOutAction } from "@/app/login/actions";
 import { cx } from "@/lib/cx";
 import Countdown from "@/components/dashboard/Countdown";
+import Icon from "@/components/ui/Icon";
 
 function ScopeSwitcher() {
   const { scope, setScope, t } = useApp();
@@ -48,7 +49,7 @@ export default function Topbar({ member, onMenu }) {
           className="grid h-9 w-9 place-items-center rounded-lg text-stone-600 hover:bg-stone-100 lg:hidden"
           aria-label="Menu"
         >
-          ☰
+          <Icon name="menu" size={18} />
         </button>
 
         <div className="hidden sm:block">

@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveCategory, deleteCategory, saveItem, deleteItem } from "@/app/(app)/budget/actions";
 import ExportButton from "@/components/share/ExportButton";
+import Icon from "@/components/ui/Icon";
 
 export default function BudgetView({ categories: initialCats = [], items: initialItems = [], preview }) {
   const { t, scope } = useApp();
@@ -123,7 +124,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
           <p className="mt-0.5 text-sm text-stone-500">{t("budget.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <ExportButton getRows={exportRows} filename="budget" sheetName={t("budget.title")} />
           <Button variant="outline" onClick={openNewCategory}>
             + {t("budget.addCategory")}
@@ -253,8 +254,8 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1 self-start opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                    <IconBtn label={t("common.edit")} onClick={() => onEditCategory(c)}>✎</IconBtn>
-                    <IconBtn label={t("common.delete")} onClick={() => onDeleteCategory(c)}>🗑</IconBtn>
+                    <IconBtn label={t("common.edit")} onClick={() => onEditCategory(c)}><Icon name="edit" size={15} /></IconBtn>
+                    <IconBtn label={t("common.delete")} onClick={() => onDeleteCategory(c)}><Icon name="trash" size={15} /></IconBtn>
                   </div>
                 </div>
 
@@ -268,8 +269,8 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
                         <span className="min-w-0 flex-1 truncate text-stone-700">{it.label || "—"}</span>
                         <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
                         <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
-                          <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}>✎</IconBtn>
-                          <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}>🗑</IconBtn>
+                          <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
+                          <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
                         </div>
                       </li>
                     ))

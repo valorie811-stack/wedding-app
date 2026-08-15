@@ -21,9 +21,17 @@ const ROOT = path.resolve(__dirname, "..");
 const t = require(path.join(ROOT, "lib", "tokens.js"));
 const SRC_DIRS = ["app", "components", "lib", "context"];
 
-// Phase 1 of the emoji migration retires the action/status glyphs. Lower this
-// as phases land; it must never rise.
-const EMOJI_BUDGET = 90;
+// Phase 1 (action/status glyphs -> drawn icons) took this from 90 to 55.
+// Lower it as phases land; it must never rise.
+//
+// The 55 that remain are deliberate, not a backlog of oversights:
+//   10  flag emoji (HP/KK identity) — belongs to the hp/kk tokens, not icons
+//    2  "✓" written into XLSX/CSV export cells — data, not UI
+//    4  RsvpView SYMBOL — its "?" and "+" members have no icon counterpart,
+//       so converting half the set would read worse than leaving it
+//    3  clickHint prose in en/vi/zh describing the ✕ affordance
+//   36  phase 2/3 decoration (🔔 🔁 📅 👤 📊 …)
+const EMOJI_BUDGET = 55;
 
 const RAMPS = { stone: t.stone, matcha: t.matcha, hp: t.hp, kk: t.kk, gold: t.gold };
 const WHITE = "#FFFFFF";
@@ -174,6 +182,24 @@ function checkWiring() {
   for (const m of layer.matchAll(/@apply([^;]*);/g)) {
     if (/\bblock\b/.test(m[1])) {
       fails.push(`@apply block resolves to the .block component, not display:block — "${m[1].trim().slice(0, 48)}"`);
+    }
+  }
+
+  // Icon returns null for an unknown name, so a typo renders nothing at all
+  // and is invisible in review. Resolve every literal name against the set.
+  const iconSrc = fs.readFileSync(path.join(ROOT, "components", "ui", "Icon.jsx"), "utf8");
+  const known = new Set(
+    [...iconSrc.slice(iconSrc.indexOf("const PATHS"), iconSrc.indexOf("export const ICON_NAMES"))
+      .matchAll(/^ {2}([a-zA-Z][a-zA-Z0-9]*):/gm)].map((m) => m[1])
+  );
+  for (const f of sources()) {
+    // Icon.jsx itself contains the literal '<Icon name="' in its dev warning.
+    if (rel(f) === "components/ui/Icon.jsx") continue;
+    const src = fs.readFileSync(f, "utf8");
+    for (const m of src.matchAll(/<Icon\s[^>]*?name="([^"]+)"/g)) {
+      if (!known.has(m[1])) {
+        fails.push(`${rel(f)}:${src.slice(0, m.index).split("\n").length}  <Icon name="${m[1]}"> is not a known icon`);
+      }
     }
   }
 

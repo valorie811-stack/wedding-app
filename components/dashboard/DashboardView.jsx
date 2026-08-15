@@ -10,6 +10,7 @@ import Badge from "@/components/ui/Badge";
 import StatCard from "@/components/dashboard/StatCard";
 import RsvpDonut from "@/components/dashboard/RsvpDonut";
 import BudgetBars from "@/components/dashboard/BudgetBars";
+import Icon from "@/components/ui/Icon";
 
 function fmtDate(date, locale) {
   if (!date) return "";
@@ -43,7 +44,7 @@ export default function DashboardView({ source, preview }) {
           </p>
         </div>
         {preview && (
-          <Badge tone="amber">⚠️ Preview data — connect Supabase for live figures</Badge>
+          <Badge tone="amber"><Icon name="warning" size={12} />Preview data — connect Supabase for live figures</Badge>
         )}
       </div>
 

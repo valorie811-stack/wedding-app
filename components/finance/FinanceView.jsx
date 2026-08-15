@@ -19,6 +19,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import tokens from "@/lib/tokens";
+import Icon from "@/components/ui/Icon";
 
 const PLANNED_COLOR = tokens.stone[300];
 const ACTUAL_COLOR = tokens.kk[600];
@@ -93,12 +94,12 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
           <p className="mt-0.5 text-sm text-stone-500">{t("finance.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
           <Badge tone={fxLive ? "green" : "neutral"}>
             {fxLive ? `🟢 ${t("finance.liveRates")}` : `🔒 ${t("finance.staticRates")}`}
           </Badge>
           <Button as="a" href={`/api/pdf/budget?scope=${scope}`} target="_blank" rel="noopener" variant="outline">
-            ⬇ PDF
+            <Icon name="download" size={14} />PDF
           </Button>
         </div>
       </div>

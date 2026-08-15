@@ -6,6 +6,7 @@ import { pct } from "@/lib/format";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { setInvite, removeInvite } from "@/app/(app)/guests/actions";
+import Icon from "@/components/ui/Icon";
 
 const CYCLE = ["confirmed", "pending", "declined"];
 const SYMBOL = { confirmed: "✓", pending: "?", declined: "✕" };
@@ -86,7 +87,7 @@ export default function RsvpView({ guests: initial, events, preview }) {
           <p className="mt-0.5 text-sm text-stone-500">{t("rsvp.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {preview && <Badge tone="amber">⚠️ {t("common.preview")}</Badge>}
+          {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
         </div>
       </div>
 
