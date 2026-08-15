@@ -9,12 +9,12 @@ const nextConfig = {
   // against the wrong node_modules and tried to watch the whole profile —
   // dev died with MODULE_NOT_FOUND and then an OOM.
   turbopack: { root: dirname(fileURLToPath(import.meta.url)) },
-  // The PDF route reads bundled TTFs at runtime (lib/pdf/fonts). Next's file
-  // tracing can't detect the dynamic fs.readFileSync, so force-include them in
-  // the /api/pdf/[kind] serverless function; otherwise fonts are missing on Vercel.
-  outputFileTracingIncludes: {
-    "/api/pdf/[kind]": ["./lib/pdf/fonts/*.ttf"],
-  },
+  // No outputFileTracingIncludes for the PDF fonts. It looked like it worked but
+  // did nothing: Turbopack (the default builder here, and what Vercel runs)
+  // ignores the option silently — a webpack build traced both .ttf files into
+  // /api/pdf/[kind], a Turbopack build traced zero, and neither warned. The font
+  // bytes are imported from lib/pdf/fonts.generated.js instead, so they are
+  // bundled by any builder. Don't reintroduce this key expecting it to ship files.
   experimental: {
     // Client router cache: keep a visited tab's payload for 30s so switching
     // back is instant. In-app edits still appear immediately (server actions

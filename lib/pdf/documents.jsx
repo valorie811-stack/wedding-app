@@ -28,23 +28,23 @@ const FONT = "Noto Sans";
 let fontsRegistered = false;
 
 // Register the bundled Noto Sans subset (Regular 400 + Bold 700) with @react-pdf.
-// Fonts are read from disk as base64 data URLs so registration never depends on
-// react-pdf resolving a runtime path. The files live at lib/pdf/fonts/ and are
-// force-included in the serverless bundle via outputFileTracingIncludes (next.config).
+//
+// The font bytes are imported from a generated module rather than read off disk.
+// This route is a serverless function, so anything it touches has to be in the
+// function bundle; next.config's outputFileTracingIncludes is the documented way
+// to force-include non-imported files, but Turbopack (Next 16's default builder,
+// and what Vercel runs) silently ignores it — webpack traced both .ttf files,
+// Turbopack traced neither, with no warning. readFileSync then threw ENOENT in
+// production while working locally, where cwd happens to contain the fonts.
+// Regenerate the module with `npm run pdf-fonts:build`.
 async function ensureFonts(Font) {
   if (fontsRegistered) return;
-  const [{ default: fs }, { default: path }] = await Promise.all([
-    import("node:fs"),
-    import("node:path"),
-  ]);
-  const dir = path.join(process.cwd(), "lib", "pdf", "fonts");
-  const dataUrl = (file) =>
-    `data:font/ttf;base64,${fs.readFileSync(path.join(dir, file)).toString("base64")}`;
+  const { REGULAR, BOLD } = await import("./fonts.generated.js");
   Font.register({
     family: FONT,
     fonts: [
-      { src: dataUrl("NotoSans-Regular.ttf"), fontWeight: 400 },
-      { src: dataUrl("NotoSans-Bold.ttf"), fontWeight: 700 },
+      { src: REGULAR, fontWeight: 400 },
+      { src: BOLD, fontWeight: 700 },
     ],
   });
   // Vietnamese words must never be broken across lines by the hyphenation engine.
