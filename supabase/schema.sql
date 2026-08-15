@@ -75,14 +75,18 @@ create table if not exists events (
 );
 
 create table if not exists guests (
-  id          uuid primary key default gen_random_uuid(),
-  full_name   text not null,
-  side        text default 'both' check (side in ('bride','groom','both')),
-  plus_one    boolean not null default false,
-  dietary     text[] not null default '{}',    -- e.g. {halal,vegetarian}
-  notes       text,
-  created_at  timestamptz not null default now()
+  id            uuid primary key default gen_random_uuid(),
+  full_name     text not null,
+  side          text default 'both' check (side in ('bride','groom','both')),
+  plus_one      boolean not null default false,
+  plus_one_name text,                            -- null unless plus_one is true
+  dietary       text[] not null default '{}',    -- e.g. {halal,vegetarian}
+  notes         text,
+  created_at    timestamptz not null default now()
 );
+-- Migrate older installs: the create above is `if not exists`, so on a database
+-- that already has the table it is a no-op and the column would never appear.
+alter table guests add column if not exists plus_one_name text;
 
 -- Per-event RSVP status (a guest can be invited to many events across weddings)
 create table if not exists guest_events (
