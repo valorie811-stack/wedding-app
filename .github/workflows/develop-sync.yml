@@ -1,0 +1,115 @@
+# Catches develop falling behind main, and opens the fix.
+#
+# branch-policy.yml stops a feature branch opening a PR into main, but
+# enforce_admins is deliberately off so an admin can still merge past a failing
+# check in an emergency. That is the intended release valve — and it is also the
+# one remaining way main can gain work develop never sees. When that happened
+# before (#10 and #11), nobody noticed until develop -> main refused to merge and
+# a hand-resolved reconciliation PR (#14) was needed.
+#
+# So: detect it the moment it happens, and raise a PR that fixes it, rather than
+# relying on someone remembering to run `git log origin/develop..origin/main`.
+name: Develop sync
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Safety net: catches drift introduced while Actions were disabled, or by a
+    # push the event never fired for.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: develop-sync
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: develop-sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect drift and open a sync PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SYNC_BRANCH: sync/main-into-develop
+        run: |
+          set -euo pipefail
+          git fetch origin main develop --quiet
+
+          behind=$(git rev-list --count origin/develop..origin/main)
+
+          if [ "$behind" -eq 0 ]; then
+            echo "develop is level with main." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # The important distinction. Every develop -> main promotion leaves a
+          # merge commit on main that develop never receives, so develop is
+          # permanently "behind" by a growing commit count while being byte for
+          # byte identical. Counting commits alone would fire after every
+          # release and train everyone to ignore this job. Compare trees.
+          if git diff --quiet origin/develop origin/main; then
+            echo "develop is $behind commit(s) behind main, but the trees are identical." \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "That is the normal state after a promotion — no content drift." \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          files=$(git diff --name-only origin/develop origin/main | head -20)
+          echo "::warning title=develop has fallen behind main::main carries content develop does not have."
+
+          {
+            echo "### develop has fallen behind main"
+            echo
+            echo "\`main\` carries changes \`develop\` does not. Left alone, the next"
+            echo "\`develop -> main\` promotion will conflict."
+            echo
+            echo "Files differing:"
+            echo '```'
+            echo "$files"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Park main's state on a branch and raise it against develop. Resolving
+          # on develop is the safe direction: a botched merge leaves main intact.
+          git push -f origin "origin/main:refs/heads/$SYNC_BRANCH"
+
+          existing=$(gh pr list --head "$SYNC_BRANCH" --base develop --state open \
+                       --json number --jq '.[0].number // empty')
+
+          if [ -n "$existing" ]; then
+            echo "Updated existing sync PR #$existing." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          gh pr create \
+            --base develop \
+            --head "$SYNC_BRANCH" \
+            --title "Sync main into develop (develop has fallen behind)" \
+            --body "$(printf '%s\n' \
+              'Opened automatically: `main` carries content `develop` does not.' \
+              '' \
+              'This usually means something reached `main` without going through' \
+              '`develop` — an admin merge past `branch-policy`, or a direct push.' \
+              '' \
+              'Left alone, the next `develop -> main` promotion conflicts. That has' \
+              'happened before: #10 and #11 landed straight on `main`, and untangling' \
+              'it needed the hand-resolved reconciliation in #14.' \
+              '' \
+              'Merging **this** PR into `develop` is the fix. Resolve any conflicts' \
+              'here rather than on `main` — if the merge goes wrong, `main` is' \
+              'untouched.' \
+              '' \
+              'Raised by `.github/workflows/develop-sync.yml`.')"
+
+          echo "Opened a sync PR." | tee -a "$GITHUB_STEP_SUMMARY"
