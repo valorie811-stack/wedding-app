@@ -1,7 +1,7 @@
 # Matcha theme — PR description
 
-Draft copy for `feat/matcha-theme` → `develop`. 10 commits, 65 files,
-+2213 / −488.
+Draft copy for `feat/matcha-theme` → `develop`. 13 commits, 70 files,
++2430 / −489.
 
 ## PR description
 
@@ -47,6 +47,38 @@ All measured, all fixed:
 The focus-ring one is the most consequential: every button and input in the
 app had an effectively invisible focus indicator, so keyboard navigation had
 no visible target anywhere.
+
+#### PDF export was silently broken, and is fixed here
+
+Worth reading even if the rest is skimmed, because the failure mode is not
+specific to this branch.
+
+`lib/pdf/documents.jsx` read the bundled Noto Sans TTFs with `fs.readFileSync`,
+and `next.config.mjs` used `outputFileTracingIncludes` to force them into the
+`/api/pdf/[kind]` serverless bundle — the documented mechanism for exactly this.
+**Turbopack ignores it.** Measured on this branch:
+
+| Build | `.ttf` files traced into the function |
+|---|---|
+| webpack | 2 |
+| Turbopack — Next 16's default, and what Vercel runs | **0** |
+
+Neither build warns, and it works locally because `cwd` there happens to contain
+`lib/pdf/fonts/`. In production `readFileSync` threw `ENOENT` and PDF export
+returned 500. This branch introduced it: on `develop` the PDF used built-in
+Helvetica and read no files.
+
+The fix is bundler-agnostic rather than another tracing hint — the font bytes
+are imported from `lib/pdf/fonts.generated.js` (base64, 198KB, produced by
+`npm run pdf-fonts:build`), so any builder bundles them. The dead config key was
+removed rather than left looking authoritative.
+
+Verified three ways: the Turbopack build now ships the fonts in the function's
+own chunk; a PDF rendered from a temp `cwd` containing no fonts produced valid
+`%PDF-` output with an embedded subset; and all 10 sampled Vietnamese codepoints
+(`ả ữ ộ ầ ế ị ỹ Đ`) are present in the PDF's ToUnicode map. The authenticated
+round trip on the preview deployment has **not** been exercised — the route is
+behind the PIN gate.
 
 #### Regression gate
 
@@ -121,8 +153,15 @@ confirming a non-zero exit.
 
 #### Verified
 
-`npm run build`, `npm run lint` (0 source problems — the 58 reported are
-`.next` artifacts from a sibling worktree that `eslint-config-next` does not
-ignore at nested paths), `npm run audit:theme`, and `npm run icons:verify` all
-pass. Fonts, CJK glyph rendering and Vietnamese diacritics were confirmed in a
-running page rather than assumed.
+`npm run build`, `npm run lint`, `npm run audit:theme` and `npm run icons:verify`
+all pass. Fonts, CJK glyph rendering and Vietnamese diacritics were confirmed in
+a running page rather than assumed, and the branding assets were confirmed
+serving from the Vercel preview at the byte sizes they were built at.
+
+`npm run lint` now exits 0. It previously reported hundreds of errors from
+`.next` output inside `.claude/worktrees/` — `eslint-config-next` only ignores
+`/.next` at the repo root, so agent worktree builds were linted and drowned out
+real findings. Generated sources are deliberately still linted; they pass.
+
+Not verified: the authenticated PDF download on the preview deployment, and
+anything else behind the PIN gate.
