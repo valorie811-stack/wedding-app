@@ -24,27 +24,38 @@ Do these once to take the app from preview mode to live data + sign-in.
 3. In the project folder, copy `.env.local.example` to `.env.local` and paste the values in.
    Leave `NEXT_PUBLIC_SITE_URL=http://localhost:3000`.
 
-## 4. Configure auth redirects
-1. Left sidebar → **Authentication** → **URL Configuration**.
-2. **Site URL**: `http://localhost:3000`
-3. **Redirect URLs**: add `http://localhost:3000/auth/callback`
-4. (Recommended for a private app) **Authentication → Providers → Email** →
-   turn **off** "Allow new users to sign up" once everyone's invited, so only
-   known emails can get in. *(Leave it on for your own first sign-in.)*
+## 4. Set the session secret
+This app is a **single-owner PIN gate** — there is no Supabase Auth sign-in, no
+magic links, and no `/auth/callback` redirect to configure. The PIN hash is
+stored in the `app_settings` table and the session cookie is signed locally.
+
+In `.env.local` set:
+```
+APP_SESSION_SECRET=<paste `openssl rand -hex 32`>
+```
 
 ## 5. Run it
 ```bash
 npm install
 npm run dev
 ```
-Open http://localhost:3000 → enter **your** email → click the magic link in your inbox.
-The **first** account to sign in automatically becomes the **owner**.
+Open http://localhost:3000 → you'll be asked to **create a PIN** (4–8 digits) on
+first run. That PIN is shared by both of you and unlocks the app from then on.
 
 ## Troubleshooting
-- *Still says "Preview data"* → keys missing/typo'd in `.env.local`, or you didn't
-  restart `npm run dev` after editing it.
-- *Magic link 404s* → the `/auth/callback` redirect URL in step 4 doesn't match.
-- *Signed in but dashboard is empty* → you didn't run `seed.sql` (step 2.3).
+- *Still says "Preview data — connect Supabase to save changes"* → the app could
+  not read from the database. In order of likelihood:
+  1. **`SUPABASE_SERVICE_ROLE_KEY` is missing.** Every table has RLS enabled
+     with **no policies**, so the anon key reads *zero rows without raising an
+     error*. The app needs the service-role key. This is the one that bites,
+     because the URL + anon key alone look correctly configured.
+  2. Keys missing or typo'd in `.env.local`, or `npm run dev` wasn't restarted
+     after editing it.
+  3. A query is failing — check the server console for a `[data] …: Supabase
+     query failed` line, which names the module and the Postgres error.
+- *A module is empty but not in preview mode* → that is correct behaviour: the
+  connection is live and that table simply has no rows yet. Add a record, or run
+  `seed.sql` (step 2.3) for samples.
 - *Want to reset* → re-running `schema.sql` and `seed.sql` is safe (idempotent).
 
 ## Phase 2–4 additions
