@@ -8,6 +8,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveTable, deleteTable, assignGuest, unassignGuest } from "@/app/(app)/tables/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import Icon from "@/components/ui/Icon";
 
 // A plus one has no guest record of its own, so it cannot be dragged or seated
@@ -34,21 +36,38 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
   const [assignments, setAssignments] = useState(initAsg);
   const [drag, setDrag] = useState(null); // { guestId, code, fromTableId }
   const [form, setForm] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   const guestById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const weddings = weddingsInScope(scope);
 
   function doAssign(tableId, guestId, code) {
     const wTableIds = new Set(tables.filter((t) => t.code === code).map((t) => t.id));
-    setAssignments((prev) => [
-      ...prev.filter((a) => !(a.guest_id === guestId && wTableIds.has(a.table_id))),
-      { id: crypto.randomUUID(), table_id: tableId, guest_id: guestId },
-    ]);
-    assignGuest(tableId, guestId).catch(() => {});
+    // Seating a guest clears any other seat they hold at the same wedding, so a
+    // failed assign has to restore the whole previous assignment list.
+    const previous = assignments;
+    run({
+      apply: () =>
+        setAssignments((prev) => [
+          ...prev.filter((a) => !(a.guest_id === guestId && wTableIds.has(a.table_id))),
+          { id: newTempId(), table_id: tableId, guest_id: guestId },
+        ]),
+      action: () => assignGuest(tableId, guestId),
+      revert: () => setAssignments(previous),
+      message: t("common.saveFailed"),
+    });
   }
   function doUnassign(tableId, guestId) {
-    setAssignments((prev) => prev.filter((a) => !(a.guest_id === guestId && a.table_id === tableId)));
-    unassignGuest(tableId, guestId).catch(() => {});
+    const removed = assignments.filter((a) => a.guest_id === guestId && a.table_id === tableId);
+    run({
+      apply: () =>
+        setAssignments((prev) =>
+          prev.filter((a) => !(a.guest_id === guestId && a.table_id === tableId))
+        ),
+      action: () => unassignGuest(tableId, guestId),
+      revert: () => setAssignments((prev) => [...prev, ...removed]),
+      message: t("common.deleteFailed"),
+    });
   }
 
   function openNewTable(code) {
@@ -60,19 +79,51 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
   function handleSaveTable() {
     if (!form.name.trim()) return;
     const payload = { id: form.id, code: form.code, name: form.name.trim(), capacity: Number(form.capacity) || 8 };
-    setTables((prev) => {
-      if (form.id) return prev.map((tb) => (tb.id === form.id ? { ...tb, ...payload } : tb));
-      const sort_order = prev.filter((tb) => tb.code === form.code).length + 1;
-      return [...prev, { ...payload, sort_order, id: crypto.randomUUID() }];
-    });
+    const editingId = form.id;
+    const previousRow = editingId ? tables.find((tb) => tb.id === editingId) : null;
+    const tempId = newTempId();
     setForm(null);
-    saveTable(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setTables((prev) => {
+          if (editingId) return prev.map((tb) => (tb.id === editingId ? { ...tb, ...payload } : tb));
+          const sort_order = prev.filter((tb) => tb.code === payload.code).length + 1;
+          return [...prev, { ...payload, sort_order, id: tempId }];
+        }),
+      action: () => saveTable(payload),
+      revert: () =>
+        setTables((prev) =>
+          editingId
+            ? prev.map((tb) => (tb.id === editingId && previousRow ? previousRow : tb))
+            : prev.filter((tb) => tb.id !== tempId)
+        ),
+      adopt: (id) => setTables((prev) => prev.map((tb) => (tb.id === tempId ? { ...tb, id } : tb))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDeleteTable(tbl) {
     if (!window.confirm(t("tables.deleteTableConfirm"))) return;
-    setTables((prev) => prev.filter((x) => x.id !== tbl.id));
-    setAssignments((prev) => prev.filter((a) => a.table_id !== tbl.id));
-    deleteTable(tbl.id).catch(() => {});
+    // Deleting a table cascades to its seat assignments, so both come back
+    // together if the delete fails.
+    const index = tables.findIndex((x) => x.id === tbl.id);
+    const seated = assignments.filter((a) => a.table_id === tbl.id);
+    run({
+      apply: () => {
+        setTables((prev) => prev.filter((x) => x.id !== tbl.id));
+        setAssignments((prev) => prev.filter((a) => a.table_id !== tbl.id));
+      },
+      action: () => deleteTable(tbl.id),
+      revert: () => {
+        setTables((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, tbl);
+          return next;
+        });
+        setAssignments((prev) => [...prev, ...seated]);
+      },
+      message: t("common.deleteFailed"),
+    });
   }
 
   return (
@@ -84,6 +135,8 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
         </div>
         {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
       </div>
+
+      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
 
       {weddings.map((w) => {
         const wTables = tables.filter((tb) => tb.code === w.code).sort((a, b) => a.sort_order - b.sort_order);
