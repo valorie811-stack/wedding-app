@@ -8,6 +8,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveMoodItem, deleteMoodItem } from "@/app/(app)/moodboards/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import tokens from "@/lib/tokens";
 import Icon from "@/components/ui/Icon";
 
@@ -36,6 +38,7 @@ export default function MoodboardsView({ items: initial, preview }) {
   const { t, scope } = useApp();
   const [items, setItems] = useState(initial);
   const [form, setForm] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   const visible = useMemo(
     () => items.filter((i) => scope === "BOTH" || i.code === scope || i.code == null),
@@ -76,17 +79,43 @@ export default function MoodboardsView({ items: initial, preview }) {
       swatches: form.swatches,
       notes: form.notes.trim(),
     };
-    setItems((prev) => {
-      if (form.id) return prev.map((i) => (i.id === form.id ? { ...i, ...payload } : i));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = form.id;
+    const previousRow = editingId ? items.find((i) => i.id === editingId) : null;
+    const tempId = newTempId();
     setForm(null);
-    saveMoodItem(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setItems((prev) =>
+          editingId
+            ? prev.map((i) => (i.id === editingId ? { ...i, ...payload } : i))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveMoodItem(payload),
+      revert: () =>
+        setItems((prev) =>
+          editingId
+            ? prev.map((i) => (i.id === editingId && previousRow ? previousRow : i))
+            : prev.filter((i) => i.id !== tempId)
+        ),
+      adopt: (id) => setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, id } : i))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDelete(m) {
     if (!window.confirm(t("moodboards.deleteConfirm"))) return;
-    setItems((prev) => prev.filter((i) => i.id !== m.id));
-    deleteMoodItem(m.id).catch(() => {});
+    const index = items.findIndex((i) => i.id === m.id);
+    run({
+      apply: () => setItems((prev) => prev.filter((i) => i.id !== m.id)),
+      action: () => deleteMoodItem(m.id),
+      revert: () =>
+        setItems((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, m);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   return (
@@ -101,6 +130,8 @@ export default function MoodboardsView({ items: initial, preview }) {
           <Button variant="gold" onClick={openNew}>+ {t("moodboards.addItem")}</Button>
         </div>
       </div>
+
+      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
 
       {visible.length === 0 ? (
         <Card>

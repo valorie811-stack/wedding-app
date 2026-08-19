@@ -11,6 +11,8 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveVendor, deleteVendor } from "@/app/(app)/vendors/actions";
 import ExportButton from "@/components/share/ExportButton";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import Icon from "@/components/ui/Icon";
 
 const STATUSES = ["enquiry", "quoted", "booked", "paid", "cancelled"];
@@ -43,7 +45,7 @@ export default function VendorsView({ vendors: initial, preview }) {
   const [form, setForm] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [error, setError] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   // Derived from current state, not the server prop, so a category typed into a
   // brand-new vendor shows up in this filter without a page reload.
@@ -89,7 +91,7 @@ export default function VendorsView({ vendors: initial, preview }) {
     });
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!form.name.trim()) return;
     const currency = WEDDINGS[form.code]?.currency;
     const payload = {
@@ -102,50 +104,43 @@ export default function VendorsView({ vendors: initial, preview }) {
 
     const editingId = form.id;
     const previousRow = editingId ? vendors.find((v) => v.id === editingId) : null;
-    // Placeholder id for the optimistic row. The database assigns the real one,
-    // which we swap in below — otherwise the next edit or delete would target an
-    // id the database never issued and silently do nothing.
-    const tempId = `pending-${crypto.randomUUID()}`;
-
-    setVendors((prev) => {
-      if (editingId) return prev.map((v) => (v.id === editingId ? { ...v, ...payload } : v));
-      return [...prev, { ...payload, id: tempId }];
-    });
+    const tempId = newTempId();
     setForm(null);
-    setError(null);
 
-    const res = await saveVendor(payload).catch((e) => ({ ok: false, error: String(e?.message || e) }));
-
-    if (!res?.ok) {
-      setVendors((prev) =>
-        editingId
-          ? prev.map((v) => (v.id === editingId && previousRow ? previousRow : v))
-          : prev.filter((v) => v.id !== tempId)
-      );
-      setError(`${t("vendors.saveFailed")}${res?.error ? ` (${res.error})` : ""}`);
-      return;
-    }
-    if (res.id) {
-      setVendors((prev) => prev.map((v) => (v.id === tempId ? { ...v, id: res.id } : v)));
-    }
+    run({
+      apply: () =>
+        setVendors((prev) =>
+          editingId
+            ? prev.map((v) => (v.id === editingId ? { ...v, ...payload } : v))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveVendor(payload),
+      revert: () =>
+        setVendors((prev) =>
+          editingId
+            ? prev.map((v) => (v.id === editingId && previousRow ? previousRow : v))
+            : prev.filter((v) => v.id !== tempId)
+        ),
+      adopt: (id) => setVendors((prev) => prev.map((v) => (v.id === tempId ? { ...v, id } : v))),
+      message: t("common.saveFailed"),
+    });
   }
 
-  async function handleDelete(v) {
+  function handleDelete(v) {
     if (!window.confirm(t("vendors.deleteConfirm"))) return;
     const index = vendors.findIndex((x) => x.id === v.id);
-    setVendors((prev) => prev.filter((x) => x.id !== v.id));
-    setError(null);
-
-    const res = await deleteVendor(v.id).catch((e) => ({ ok: false, error: String(e?.message || e) }));
-    if (!res?.ok) {
+    run({
+      apply: () => setVendors((prev) => prev.filter((x) => x.id !== v.id)),
+      action: () => deleteVendor(v.id),
       // Put the row back where it was so the list order survives a failed delete.
-      setVendors((prev) => {
-        const next = [...prev];
-        next.splice(index < 0 ? next.length : index, 0, v);
-        return next;
-      });
-      setError(`${t("vendors.deleteFailed")}${res?.error ? ` (${res.error})` : ""}`);
-    }
+      revert: () =>
+        setVendors((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, v);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   function exportRows() {
@@ -181,25 +176,7 @@ export default function VendorsView({ vendors: initial, preview }) {
         </div>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          <p className="flex items-start gap-2">
-            <Icon name="warning" size={14} />
-            {error}
-          </p>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            aria-label={t("common.close")}
-            className="shrink-0 rounded-lg p-1 text-red-500 hover:bg-red-100 hover:text-red-700"
-          >
-            <Icon name="close" size={14} />
-          </button>
-        </div>
-      )}
+      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
 
       {/* Summary */}
       <Card>

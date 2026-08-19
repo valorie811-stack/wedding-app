@@ -7,6 +7,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { saveTask, updateTaskStatus, deleteTask } from "@/app/(app)/planning/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import TaskForm from "@/components/planning/TaskForm";
 import Icon from "@/components/ui/Icon";
 
@@ -45,6 +47,7 @@ export default function PlanningView({ tasks: initial, preview }) {
   const { t, scope, locale } = useApp();
   const [tasks, setTasks] = useState(initial);
   const [form, setForm] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
   const [dragId, setDragId] = useState(null);
   const [overCol, setOverCol] = useState(null);
 
@@ -67,8 +70,16 @@ export default function PlanningView({ tasks: initial, preview }) {
   }, [visible]);
 
   function moveTask(id, status) {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
-    updateTaskStatus(id, status).catch(() => {});
+    const previousStatus = tasks.find((t) => t.id === id)?.status;
+    if (previousStatus === undefined || previousStatus === status) return;
+    run({
+      apply: () => setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t))),
+      action: () => updateTaskStatus(id, status),
+      // Send the card back to the column it was dragged out of.
+      revert: () =>
+        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: previousStatus } : t))),
+      message: t("common.saveFailed"),
+    });
   }
 
   function onDrop(status) {
@@ -108,18 +119,44 @@ export default function PlanningView({ tasks: initial, preview }) {
       recurUntil: form.recurFreq && form.recurUntil ? form.recurUntil : null,
       remindDays,
     };
-    setTasks((prev) => {
-      if (form.id) return prev.map((t) => (t.id === form.id ? { ...t, ...payload } : t));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = form.id;
+    const previousRow = editingId ? tasks.find((t) => t.id === editingId) : null;
+    const tempId = newTempId();
     setForm(null);
-    saveTask(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setTasks((prev) =>
+          editingId
+            ? prev.map((t) => (t.id === editingId ? { ...t, ...payload } : t))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveTask(payload),
+      revert: () =>
+        setTasks((prev) =>
+          editingId
+            ? prev.map((t) => (t.id === editingId && previousRow ? previousRow : t))
+            : prev.filter((t) => t.id !== tempId)
+        ),
+      adopt: (id) => setTasks((prev) => prev.map((t) => (t.id === tempId ? { ...t, id } : t))),
+      message: t("common.saveFailed"),
+    });
   }
 
   function handleDelete(task) {
     if (!window.confirm(t("planning.deleteConfirm"))) return;
-    setTasks((prev) => prev.filter((x) => x.id !== task.id));
-    deleteTask(task.id).catch(() => {});
+    const index = tasks.findIndex((x) => x.id === task.id);
+    run({
+      apply: () => setTasks((prev) => prev.filter((x) => x.id !== task.id)),
+      action: () => deleteTask(task.id),
+      revert: () =>
+        setTasks((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, task);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   const today = new Date();
@@ -139,6 +176,8 @@ export default function PlanningView({ tasks: initial, preview }) {
           </Button>
         </div>
       </div>
+
+      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
 
       <div className="grid gap-4 md:grid-cols-3">
         {COLUMNS.map((col) => (

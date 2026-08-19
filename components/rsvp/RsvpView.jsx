@@ -7,6 +7,8 @@ import { isFamilyOnlyEvent } from "@/lib/events";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { setInvite, removeInvite } from "@/app/(app)/guests/actions";
+import useOptimisticWrite from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import Icon from "@/components/ui/Icon";
 
 const CYCLE = ["confirmed", "pending", "declined"];
@@ -22,6 +24,7 @@ function cellClass(status) {
 export default function RsvpView({ guests: initial, events, preview }) {
   const { t, scope, locale } = useApp();
   const [guests, setGuests] = useState(initial);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   // Columns = in-scope events, minus the family-only Lễ Dạm Ngõ (Family
   // Introduction), which is never a guest RSVP option.
@@ -73,13 +76,24 @@ export default function RsvpView({ guests: initial, events, preview }) {
   function cycle(g, eventId) {
     const cur = statusOf(g, eventId);
     const next = cur === null ? "pending" : CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
-    applyLocal(g.id, eventId, next);
-    setInvite(g.id, eventId, next).catch(() => {});
+    run({
+      apply: () => applyLocal(g.id, eventId, next),
+      action: () => setInvite(g.id, eventId, next),
+      // `cur` is null when the guest was not invited, and applyLocal(null)
+      // removes the invitation again — so this restores either prior state.
+      revert: () => applyLocal(g.id, eventId, cur),
+      message: t("common.saveFailed"),
+    });
   }
 
   function remove(g, eventId) {
-    applyLocal(g.id, eventId, null);
-    removeInvite(g.id, eventId).catch(() => {});
+    const cur = statusOf(g, eventId);
+    run({
+      apply: () => applyLocal(g.id, eventId, null),
+      action: () => removeInvite(g.id, eventId),
+      revert: () => applyLocal(g.id, eventId, cur),
+      message: t("common.deleteFailed"),
+    });
   }
 
   return (
@@ -93,6 +107,8 @@ export default function RsvpView({ guests: initial, events, preview }) {
           {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
         </div>
       </div>
+
+      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
 
       {/* Per-event summary */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

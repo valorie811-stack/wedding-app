@@ -29,8 +29,17 @@ export async function saveCategory(input) {
     ? await supabase.from("budget_categories").insert(row).select("id").maybeSingle()
     : await supabase.from("budget_categories").update(row).eq("id", input.id).select("id").maybeSingle();
   if (res.error) return { ok: false, error: res.error.message };
+  // An update that matches no row comes back as data: null with no error. That
+  // means the client holds an id the database never issued, so report it rather
+  // than letting the UI show the change as saved.
+  if (!res.data?.id) {
+    return {
+      ok: false,
+      error: isSeed(input.id) ? "Insert returned no row." : "No matching row to update.",
+    };
+  }
   refresh();
-  return { ok: true, preview: false, id: res.data?.id };
+  return { ok: true, preview: false, id: res.data.id };
 }
 
 // Removes a category and all of its expense items (matched by name + wedding).
@@ -67,8 +76,17 @@ export async function saveItem(input) {
     ? await supabase.from("budget_items").insert(row).select("id").maybeSingle()
     : await supabase.from("budget_items").update(row).eq("id", input.id).select("id").maybeSingle();
   if (res.error) return { ok: false, error: res.error.message };
+  // An update that matches no row comes back as data: null with no error. That
+  // means the client holds an id the database never issued, so report it rather
+  // than letting the UI show the change as saved.
+  if (!res.data?.id) {
+    return {
+      ok: false,
+      error: isSeed(input.id) ? "Insert returned no row." : "No matching row to update.",
+    };
+  }
   refresh();
-  return { ok: true, preview: false, id: res.data?.id };
+  return { ok: true, preview: false, id: res.data.id };
 }
 
 export async function deleteItem(id) {
