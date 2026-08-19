@@ -29,13 +29,24 @@ export async function saveVendor(input) {
     notes: input.notes || null,
   };
 
-  const res = isSeed(input.id)
+  const inserting = isSeed(input.id);
+  const res = inserting
     ? await supabase.from("vendors").insert(row).select("id").maybeSingle()
     : await supabase.from("vendors").update(row).eq("id", input.id).select("id").maybeSingle();
 
   if (res.error) return { ok: false, error: res.error.message };
+  // An update that matches no row comes back as data: null with no error. That
+  // means the client is holding an id the database never issued, so report it
+  // instead of letting the UI show the edit as saved.
+  if (!res.data?.id) {
+    return {
+      ok: false,
+      error: inserting ? "Insert returned no row." : "No vendor found with that id.",
+    };
+  }
+
   revalidatePath("/vendors");
-  return { ok: true, preview: false, id: res.data?.id };
+  return { ok: true, preview: false, id: res.data.id };
 }
 
 export async function deleteVendor(id) {

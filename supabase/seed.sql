@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Two Weddings — seed data (run AFTER schema.sql)
--- Populates the two weddings, five ceremonies, and sample budget / guests /
--- tasks so the dashboard has live data to render. Re-runnable.
+-- Populates the two weddings, five ceremonies, and sample vendors / budget /
+-- guests / tasks so every module has live data to render. Re-runnable.
 -- ============================================================================
 
 -- Weddings ------------------------------------------------------------------
@@ -22,6 +22,25 @@ from (values
 ) as v(wcode,name_en,name_vi,name_zh,d,st,et,loc,etype,halal,so)
 join weddings w on w.code = v.wcode
 where not exists (select 1 from events e where e.name_en = v.name_en);
+
+-- Vendors --------------------------------------------------------------------
+-- Mirrors SEED_VENDORS in lib/seed-data.js so preview mode and a freshly seeded
+-- database show the same list. Without this the vendors table was the only one
+-- seed.sql left empty, which is what made the Vendors page look disconnected.
+insert into vendors (wedding_id, name, category, contact_name, email, phone, contract_status, total_cost, deposit_paid, is_halal_certified, notes)
+select w.id, v.name, v.category, v.contact_name, v.email, v.phone, v.contract_status, v.total_cost, v.deposit_paid, v.halal, v.notes
+from (values
+  ('HP','Hải Phòng Grand Palace','Venue','Mr. Tuấn','events@hpgrand.vn','+84 225 123 456','booked', 120000000, 40000000, false,'Banquet hall for Lễ Cưới, capacity 300.'),
+  ('HP','Saigon Lens Studio','Photography','Linh Phạm','hello@saigonlens.vn','+84 90 234 5678','paid', 40000000, 40000000, false,'Photo + cinematic video, both VN events.'),
+  ('HP','Áo Dài Hạnh Couture','Attire','Cô Hạnh','hanh@aodaicouture.vn','+84 91 555 1212','quoted', 60000000, 0, false,'Bridal áo dài + groom suits. Awaiting fitting.'),
+  ('HP','Bloom & Petal Décor','Florals','Mai Nguyễn','studio@bloompetal.vn','+84 93 777 8899','enquiry', 30000000, 0, false,'Ceremony arch + table florals.'),
+  ('KK','Sutera Harbour Resort','Venue','Ms. Farah','weddings@suteraharbour.my','+60 88 318 888','booked', 25000, 8000, true,'Ballroom for tea ceremony & banquet.'),
+  ('KK','Borneo Halal Catering','Catering','Encik Razak','book@borneohalal.my','+60 16 820 4455','booked', 40000, 12000, true,'Halal-certified — Day 2 lunch + banquet.'),
+  ('KK','KK Frame & Motion','Photography','Daniel Wong','daniel@kkframe.my','+60 12 345 6677','paid', 12000, 12000, false,'Photo + video for both KK events.'),
+  ('KK','Sabah Premier Transfers','Transport','Mr. Lim','fleet@sabahtransfers.my','+60 17 998 2211','quoted', 5000, 0, false,'Guest shuttles, airport + venue.')
+) as v(wcode,name,category,contact_name,email,phone,contract_status,total_cost,deposit_paid,halal,notes)
+join weddings w on w.code = v.wcode
+where not exists (select 1 from vendors x where x.name = v.name and x.wedding_id = w.id);
 
 -- Budget — planned per category (one overall planned amount each) ------------
 insert into budget_categories (wedding_id, category, planned)

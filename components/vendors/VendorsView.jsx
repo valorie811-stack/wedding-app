@@ -43,10 +43,13 @@ export default function VendorsView({ vendors: initial, preview }) {
   const [form, setForm] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [error, setError] = useState(null);
 
+  // Derived from current state, not the server prop, so a category typed into a
+  // brand-new vendor shows up in this filter without a page reload.
   const categories = useMemo(
-    () => [...new Set(initial.map((v) => v.category).filter(Boolean))].sort(),
-    [initial]
+    () => [...new Set(vendors.map((v) => v.category).filter(Boolean))].sort(),
+    [vendors]
   );
 
   const visible = useMemo(
@@ -86,7 +89,7 @@ export default function VendorsView({ vendors: initial, preview }) {
     });
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) return;
     const currency = WEDDINGS[form.code]?.currency;
     const payload = {
@@ -96,18 +99,53 @@ export default function VendorsView({ vendors: initial, preview }) {
       total_cost: Number(form.total_cost) || 0,
       deposit_paid: Number(form.deposit_paid) || 0,
     };
+
+    const editingId = form.id;
+    const previousRow = editingId ? vendors.find((v) => v.id === editingId) : null;
+    // Placeholder id for the optimistic row. The database assigns the real one,
+    // which we swap in below — otherwise the next edit or delete would target an
+    // id the database never issued and silently do nothing.
+    const tempId = `pending-${crypto.randomUUID()}`;
+
     setVendors((prev) => {
-      if (form.id) return prev.map((v) => (v.id === form.id ? { ...v, ...payload } : v));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
+      if (editingId) return prev.map((v) => (v.id === editingId ? { ...v, ...payload } : v));
+      return [...prev, { ...payload, id: tempId }];
     });
     setForm(null);
-    saveVendor(payload).catch(() => {});
+    setError(null);
+
+    const res = await saveVendor(payload).catch((e) => ({ ok: false, error: String(e?.message || e) }));
+
+    if (!res?.ok) {
+      setVendors((prev) =>
+        editingId
+          ? prev.map((v) => (v.id === editingId && previousRow ? previousRow : v))
+          : prev.filter((v) => v.id !== tempId)
+      );
+      setError(`${t("vendors.saveFailed")}${res?.error ? ` (${res.error})` : ""}`);
+      return;
+    }
+    if (res.id) {
+      setVendors((prev) => prev.map((v) => (v.id === tempId ? { ...v, id: res.id } : v)));
+    }
   }
 
-  function handleDelete(v) {
+  async function handleDelete(v) {
     if (!window.confirm(t("vendors.deleteConfirm"))) return;
+    const index = vendors.findIndex((x) => x.id === v.id);
     setVendors((prev) => prev.filter((x) => x.id !== v.id));
-    deleteVendor(v.id).catch(() => {});
+    setError(null);
+
+    const res = await deleteVendor(v.id).catch((e) => ({ ok: false, error: String(e?.message || e) }));
+    if (!res?.ok) {
+      // Put the row back where it was so the list order survives a failed delete.
+      setVendors((prev) => {
+        const next = [...prev];
+        next.splice(index < 0 ? next.length : index, 0, v);
+        return next;
+      });
+      setError(`${t("vendors.deleteFailed")}${res?.error ? ` (${res.error})` : ""}`);
+    }
   }
 
   function exportRows() {
@@ -142,6 +180,26 @@ export default function VendorsView({ vendors: initial, preview }) {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <p className="flex items-start gap-2">
+            <Icon name="warning" size={14} />
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label={t("common.close")}
+            className="shrink-0 rounded-lg p-1 text-red-500 hover:bg-red-100 hover:text-red-700"
+          >
+            <Icon name="close" size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Summary */}
       <Card>
