@@ -112,7 +112,12 @@ export default function AttireView({ items: initial, preview }) {
         </div>
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {visible.length === 0 ? (
         <Card>

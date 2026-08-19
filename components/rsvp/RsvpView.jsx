@@ -108,7 +108,12 @@ export default function RsvpView({ guests: initial, events, preview }) {
         </div>
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {/* Per-event summary */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

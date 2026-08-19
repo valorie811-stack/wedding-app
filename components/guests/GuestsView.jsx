@@ -210,7 +210,12 @@ export default function GuestsView({ guests: initial, events, preview }) {
         </div>
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {/* Summary — each card is a clickable filter for the list below. */}
       <Card>

@@ -136,7 +136,12 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
         {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {weddings.map((w) => {
         const wTables = tables.filter((tb) => tb.code === w.code).sort((a, b) => a.sort_order - b.sort_order);

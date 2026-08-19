@@ -177,7 +177,12 @@ export default function PlanningView({ tasks: initial, preview }) {
         </div>
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         {COLUMNS.map((col) => (

@@ -197,7 +197,12 @@ export default function BudgetView({ categories: initialCats = [], items: initia
         </div>
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {/* Combined AUD rollup */}
       <Card>
