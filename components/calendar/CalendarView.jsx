@@ -391,7 +391,12 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
         </div>
       </div>
 
-      <ErrorBanner message={error} onDismiss={dismissError} dismissLabel={t("common.close")} />
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Calendar grid */}

@@ -27,8 +27,8 @@ export const newTempId = () => `pending-${crypto.randomUUID()}`;
 // action()  – call the server action; resolves to { ok, error?, id? }
 // revert()  – undo `apply` when the write failed
 // adopt(id) – swap the placeholder id for the one the database assigned
-// message   – human-readable prefix for the error banner
-// setError  – receives null on success, the assembled message on failure
+// message   – plain-language sentence for the banner
+// setError  – receives null on success, { message, detail } on failure
 export async function performWrite({ apply, action, revert, adopt, message, setError }) {
   apply?.();
   setError(null);
@@ -41,7 +41,10 @@ export async function performWrite({ apply, action, revert, adopt, message, setE
 
   if (!res?.ok) {
     revert?.();
-    setError([message, res?.error && `(${res.error})`].filter(Boolean).join(" "));
+    // Keep the database's wording out of the headline but never lose it — it is
+    // what made the original preview-mode bug diagnosable in the first place.
+    if (res?.error) console.error("[write] action failed:", res.error);
+    setError({ message, detail: res?.error ?? null });
     return null;
   }
   if (res.id) adopt?.(res.id);
