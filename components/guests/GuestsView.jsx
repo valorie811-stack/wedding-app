@@ -9,6 +9,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveGuest, deleteGuest } from "@/app/(app)/guests/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import ExportButton from "@/components/share/ExportButton";
 import Icon from "@/components/ui/Icon";
 
@@ -32,6 +34,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
   const { t, scope, locale } = useApp();
   const [guests, setGuests] = useState(initial);
   const [form, setForm] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -132,18 +135,44 @@ export default function GuestsView({ guests: initial, events, preview }) {
       plus_one_name: form.plus_one ? form.plus_one_name.trim() : "",
       invites,
     };
-    setGuests((prev) => {
-      if (form.id) return prev.map((g) => (g.id === form.id ? { ...g, ...payload } : g));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = form.id;
+    const previousRow = editingId ? guests.find((g) => g.id === editingId) : null;
+    const tempId = newTempId();
     setForm(null);
-    saveGuest({ ...payload, id: form.id }).catch(() => {});
+
+    run({
+      apply: () =>
+        setGuests((prev) =>
+          editingId
+            ? prev.map((g) => (g.id === editingId ? { ...g, ...payload } : g))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveGuest({ ...payload, id: editingId }),
+      revert: () =>
+        setGuests((prev) =>
+          editingId
+            ? prev.map((g) => (g.id === editingId && previousRow ? previousRow : g))
+            : prev.filter((g) => g.id !== tempId)
+        ),
+      adopt: (id) => setGuests((prev) => prev.map((g) => (g.id === tempId ? { ...g, id } : g))),
+      message: t("common.saveFailed"),
+    });
   }
 
   function handleDelete(g) {
     if (!window.confirm(t("guests.deleteConfirm"))) return;
-    setGuests((prev) => prev.filter((x) => x.id !== g.id));
-    deleteGuest(g.id).catch(() => {});
+    const index = guests.findIndex((x) => x.id === g.id);
+    run({
+      apply: () => setGuests((prev) => prev.filter((x) => x.id !== g.id)),
+      action: () => deleteGuest(g.id),
+      revert: () =>
+        setGuests((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, g);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   function exportRows() {
@@ -180,6 +209,13 @@ export default function GuestsView({ guests: initial, events, preview }) {
           </Button>
         </div>
       </div>
+
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {/* Summary — each card is a clickable filter for the list below. */}
       <Card>

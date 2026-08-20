@@ -8,6 +8,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveAttireItem, deleteAttireItem } from "@/app/(app)/attire/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import Icon from "@/components/ui/Icon";
 
 const ROLE_ORDER = ["bride", "groom", "family", "party", "guest", "other"];
@@ -18,6 +20,7 @@ export default function AttireView({ items: initial, preview }) {
   const { t, scope } = useApp();
   const [items, setItems] = useState(initial);
   const [form, setForm] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   const visible = useMemo(
     () => items.filter((i) => scope === "BOTH" || i.code === scope || i.code == null),
@@ -56,17 +59,44 @@ export default function AttireView({ items: initial, preview }) {
       status: form.status,
       notes: form.notes.trim(),
     };
-    setItems((prev) => {
-      if (form.id) return prev.map((i) => (i.id === form.id ? { ...i, ...payload } : i));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = form.id;
+    const previousRow = editingId ? items.find((i) => i.id === editingId) : null;
+    const tempId = newTempId();
     setForm(null);
-    saveAttireItem(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setItems((prev) =>
+          editingId
+            ? prev.map((i) => (i.id === editingId ? { ...i, ...payload } : i))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveAttireItem(payload),
+      revert: () =>
+        setItems((prev) =>
+          editingId
+            ? prev.map((i) => (i.id === editingId && previousRow ? previousRow : i))
+            : prev.filter((i) => i.id !== tempId)
+        ),
+      adopt: (id) => setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, id } : i))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDelete(a) {
     if (!window.confirm(t("attire.deleteConfirm"))) return;
-    setItems((prev) => prev.filter((i) => i.id !== a.id));
-    deleteAttireItem(a.id).catch(() => {});
+    const index = items.findIndex((i) => i.id === a.id);
+    run({
+      apply: () => setItems((prev) => prev.filter((i) => i.id !== a.id)),
+      action: () => deleteAttireItem(a.id),
+      // Restore at its original position so the grid order survives a failure.
+      revert: () =>
+        setItems((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, a);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   return (
@@ -81,6 +111,13 @@ export default function AttireView({ items: initial, preview }) {
           <Button variant="gold" onClick={openNew}>+ {t("attire.addItem")}</Button>
         </div>
       </div>
+
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {visible.length === 0 ? (
         <Card>

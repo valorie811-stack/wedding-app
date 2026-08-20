@@ -10,6 +10,8 @@ import EventForm, { blankEvent } from "@/components/calendar/EventForm";
 import TaskForm from "@/components/planning/TaskForm";
 import { saveEvent, deleteEvent } from "@/app/(app)/scheduler/actions";
 import { saveTask, deleteTask } from "@/app/(app)/planning/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import { buildICS } from "@/lib/ics";
 import { downloadICS } from "@/lib/export";
 import { expandTaskOccurrences, isReminding } from "@/lib/recurrence";
@@ -45,6 +47,7 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
   const [taskForm, setTaskForm] = useState(null);
   const [dragItem, setDragItem] = useState(null); // { kind, id } being rescheduled
   const [dragOverDate, setDragOverDate] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   const sharedVisible = (code) => scope === "BOTH" || code === scope || code == null;
 
@@ -182,18 +185,46 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
       code: form.code || null,
       name: { ...form.name, en: form.name.en.trim() },
     };
-    setEvents((prev) => {
-      if (form.id) return prev.map((e) => (e.id === form.id ? { ...e, ...payload } : e));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = form.id;
+    const previousRow = editingId ? events.find((e) => e.id === editingId) : null;
+    const tempId = newTempId();
     setForm(null);
-    saveEvent({ ...payload, id: form.id }).catch(() => {});
+
+    run({
+      apply: () =>
+        setEvents((prev) =>
+          editingId
+            ? prev.map((e) => (e.id === editingId ? { ...e, ...payload } : e))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveEvent({ ...payload, id: editingId }),
+      revert: () =>
+        setEvents((prev) =>
+          editingId
+            ? prev.map((e) => (e.id === editingId && previousRow ? previousRow : e))
+            : prev.filter((e) => e.id !== tempId)
+        ),
+      adopt: (id) => setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...e, id } : e))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDelete(id) {
     if (!window.confirm(t("calendar.deleteConfirm"))) return;
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    const index = events.findIndex((e) => e.id === id);
+    const removed = events[index];
     setForm(null);
-    deleteEvent(id).catch(() => {});
+    run({
+      apply: () => setEvents((prev) => prev.filter((e) => e.id !== id)),
+      action: () => deleteEvent(id),
+      revert: () =>
+        setEvents((prev) => {
+          if (!removed) return prev;
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, removed);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   // --- task milestones (reuses the planning TaskForm + actions) ------------
@@ -240,18 +271,46 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
       recurUntil: taskForm.recurFreq && taskForm.recurUntil ? taskForm.recurUntil : null,
       remindDays,
     };
-    setTasks((prev) => {
-      if (taskForm.id) return prev.map((tk) => (tk.id === taskForm.id ? { ...tk, ...payload } : tk));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = taskForm.id;
+    const previousRow = editingId ? tasks.find((tk) => tk.id === editingId) : null;
+    const tempId = newTempId();
     setTaskForm(null);
-    saveTask(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setTasks((prev) =>
+          editingId
+            ? prev.map((tk) => (tk.id === editingId ? { ...tk, ...payload } : tk))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveTask(payload),
+      revert: () =>
+        setTasks((prev) =>
+          editingId
+            ? prev.map((tk) => (tk.id === editingId && previousRow ? previousRow : tk))
+            : prev.filter((tk) => tk.id !== tempId)
+        ),
+      adopt: (id) => setTasks((prev) => prev.map((tk) => (tk.id === tempId ? { ...tk, id } : tk))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDeleteTask(id) {
     if (!window.confirm(t("planning.deleteConfirm"))) return;
-    setTasks((prev) => prev.filter((tk) => tk.id !== id));
+    const index = tasks.findIndex((tk) => tk.id === id);
+    const removed = tasks[index];
     setTaskForm(null);
-    deleteTask(id).catch(() => {});
+    run({
+      apply: () => setTasks((prev) => prev.filter((tk) => tk.id !== id)),
+      action: () => deleteTask(id),
+      revert: () =>
+        setTasks((prev) => {
+          if (!removed) return prev;
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, removed);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   // --- drag-to-reschedule --------------------------------------------------
@@ -268,13 +327,30 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
     if (item.kind === "event") {
       const ev = eventById.get(item.id);
       if (!ev || ev.date === dateStr) return;
-      setEvents((prev) => prev.map((e) => (e.id === item.id ? { ...e, date: dateStr } : e)));
-      saveEvent({ ...ev, code: ev.code || null, date: dateStr }).catch(() => {});
+      const previousDate = ev.date;
+      run({
+        apply: () =>
+          setEvents((prev) => prev.map((e) => (e.id === item.id ? { ...e, date: dateStr } : e))),
+        action: () => saveEvent({ ...ev, code: ev.code || null, date: dateStr }),
+        // Drop the card back on the day it came from.
+        revert: () =>
+          setEvents((prev) =>
+            prev.map((e) => (e.id === item.id ? { ...e, date: previousDate } : e))
+          ),
+        message: t("common.saveFailed"),
+      });
     } else if (item.kind === "milestone") {
       const tk = taskById.get(item.id);
       if (!tk || tk.due === dateStr) return;
-      setTasks((prev) => prev.map((x) => (x.id === item.id ? { ...x, due: dateStr } : x)));
-      saveTask({ ...tk, code: tk.code || null, due: dateStr }).catch(() => {});
+      const previousDue = tk.due;
+      run({
+        apply: () =>
+          setTasks((prev) => prev.map((x) => (x.id === item.id ? { ...x, due: dateStr } : x))),
+        action: () => saveTask({ ...tk, code: tk.code || null, due: dateStr }),
+        revert: () =>
+          setTasks((prev) => prev.map((x) => (x.id === item.id ? { ...x, due: previousDue } : x))),
+        message: t("common.saveFailed"),
+      });
     }
   }
 
@@ -314,6 +390,13 @@ export default function CalendarView({ events: initialEvents, tasks: initialTask
           </Button>
         </div>
       </div>
+
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Calendar grid */}

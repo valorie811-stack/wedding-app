@@ -10,6 +10,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { saveCategory, deleteCategory, saveItem, deleteItem } from "@/app/(app)/budget/actions";
+import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import ExportButton from "@/components/share/ExportButton";
 import Icon from "@/components/ui/Icon";
 
@@ -19,6 +21,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
   const [items, setItems] = useState(initialItems);
   const [catForm, setCatForm] = useState(null);
   const [itemForm, setItemForm] = useState(null);
+  const { error, dismissError, run } = useOptimisticWrite();
 
   const visibleCats = useMemo(() => categories.filter((c) => inScope(c.code, scope)), [categories, scope]);
   const visibleItems = useMemo(() => items.filter((i) => inScope(i.code, scope)), [items, scope]);
@@ -55,18 +58,51 @@ export default function BudgetView({ categories: initialCats = [], items: initia
     if (!name) return;
     const currency = WEDDINGS[catForm.code]?.currency;
     const payload = { id: catForm.id, code: catForm.code, currency, category: name, planned: Number(catForm.planned) || 0 };
-    setCategories((prev) => {
-      if (catForm.id) return prev.map((c) => (c.id === catForm.id ? { ...c, ...payload } : c));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = catForm.id;
+    const previousRow = editingId ? categories.find((c) => c.id === editingId) : null;
+    const tempId = newTempId();
     setCatForm(null);
-    saveCategory(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setCategories((prev) =>
+          editingId
+            ? prev.map((c) => (c.id === editingId ? { ...c, ...payload } : c))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveCategory(payload),
+      revert: () =>
+        setCategories((prev) =>
+          editingId
+            ? prev.map((c) => (c.id === editingId && previousRow ? previousRow : c))
+            : prev.filter((c) => c.id !== tempId)
+        ),
+      adopt: (id) => setCategories((prev) => prev.map((c) => (c.id === tempId ? { ...c, id } : c))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDeleteCategory(c) {
     if (!window.confirm(t("budget.deleteCategoryConfirm"))) return;
-    setCategories((prev) => prev.filter((x) => x.id !== c.id));
-    setItems((prev) => prev.filter((i) => !(i.code === c.code && i.category === c.category)));
-    deleteCategory({ id: c.id, code: c.code, category: c.category }).catch(() => {});
+    // The server drops the category's expense items too, so both lists have to
+    // come back together if the delete fails.
+    const catIndex = categories.findIndex((x) => x.id === c.id);
+    const removedItems = items.filter((i) => i.code === c.code && i.category === c.category);
+    run({
+      apply: () => {
+        setCategories((prev) => prev.filter((x) => x.id !== c.id));
+        setItems((prev) => prev.filter((i) => !(i.code === c.code && i.category === c.category)));
+      },
+      action: () => deleteCategory({ id: c.id, code: c.code, category: c.category }),
+      revert: () => {
+        setCategories((prev) => {
+          const next = [...prev];
+          next.splice(catIndex < 0 ? next.length : catIndex, 0, c);
+          return next;
+        });
+        setItems((prev) => [...prev, ...removedItems]);
+      },
+      message: t("common.deleteFailed"),
+    });
   }
 
   // ---- Expense item handlers ----
@@ -89,17 +125,43 @@ export default function BudgetView({ categories: initialCats = [], items: initia
       label: itemForm.label.trim(),
       actual: Number(itemForm.actual) || 0,
     };
-    setItems((prev) => {
-      if (itemForm.id) return prev.map((i) => (i.id === itemForm.id ? { ...i, ...payload } : i));
-      return [...prev, { ...payload, id: crypto.randomUUID() }];
-    });
+    const editingId = itemForm.id;
+    const previousRow = editingId ? items.find((i) => i.id === editingId) : null;
+    const tempId = newTempId();
     setItemForm(null);
-    saveItem(payload).catch(() => {});
+
+    run({
+      apply: () =>
+        setItems((prev) =>
+          editingId
+            ? prev.map((i) => (i.id === editingId ? { ...i, ...payload } : i))
+            : [...prev, { ...payload, id: tempId }]
+        ),
+      action: () => saveItem(payload),
+      revert: () =>
+        setItems((prev) =>
+          editingId
+            ? prev.map((i) => (i.id === editingId && previousRow ? previousRow : i))
+            : prev.filter((i) => i.id !== tempId)
+        ),
+      adopt: (id) => setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, id } : i))),
+      message: t("common.saveFailed"),
+    });
   }
   function handleDeleteItem(it) {
     if (!window.confirm(t("budget.deleteConfirm"))) return;
-    setItems((prev) => prev.filter((x) => x.id !== it.id));
-    deleteItem(it.id).catch(() => {});
+    const index = items.findIndex((x) => x.id === it.id);
+    run({
+      apply: () => setItems((prev) => prev.filter((x) => x.id !== it.id)),
+      action: () => deleteItem(it.id),
+      revert: () =>
+        setItems((prev) => {
+          const next = [...prev];
+          next.splice(index < 0 ? next.length : index, 0, it);
+          return next;
+        }),
+      message: t("common.deleteFailed"),
+    });
   }
 
   function exportRows() {
@@ -134,6 +196,13 @@ export default function BudgetView({ categories: initialCats = [], items: initia
           </Button>
         </div>
       </div>
+
+      <ErrorBanner
+        error={error}
+        onDismiss={dismissError}
+        dismissLabel={t("common.close")}
+        detailsLabel={t("common.errorDetails")}
+      />
 
       {/* Combined AUD rollup */}
       <Card>
