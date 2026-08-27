@@ -25,6 +25,13 @@ export async function saveCategory(input) {
     category: input.category,
     planned: Number(input.planned) || 0,
   };
+  // Expense items reference their category by name, so a rename has to carry
+  // them along. Read the old name first: without this the items keep pointing at
+  // it, drop out of the category list, and their spend lands in the combined
+  // total with no line on the page to account for it.
+  const before = isSeed(input.id)
+    ? null
+    : (await supabase.from("budget_categories").select("category,wedding_id").eq("id", input.id).maybeSingle()).data;
   const res = isSeed(input.id)
     ? await supabase.from("budget_categories").insert(row).select("id").maybeSingle()
     : await supabase.from("budget_categories").update(row).eq("id", input.id).select("id").maybeSingle();
@@ -37,6 +44,13 @@ export async function saveCategory(input) {
       ok: false,
       error: isSeed(input.id) ? "Insert returned no row." : "No matching row to update.",
     };
+  }
+  if (before && before.category !== input.category) {
+    await supabase
+      .from("budget_items")
+      .update({ category: input.category })
+      .eq("wedding_id", before.wedding_id)
+      .eq("category", before.category);
   }
   refresh();
   return { ok: true, preview: false, id: res.data.id };
