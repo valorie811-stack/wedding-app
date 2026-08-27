@@ -26,13 +26,30 @@ export default function BudgetView({ categories: initialCats = [], items: initia
   const visibleCats = useMemo(() => categories.filter((c) => inScope(c.code, scope)), [categories, scope]);
   const visibleItems = useMemo(() => items.filter((i) => inScope(i.code, scope)), [items, scope]);
 
+  // Expense items name their category by string, so an item can end up pointing
+  // at a name no category row carries any more. Those items still count in the
+  // rollups below, so they have to stay on screen — otherwise their spend shows
+  // up in the totals with no line anywhere to explain it.
+  const orphansByCode = useMemo(() => {
+    const known = new Set(visibleCats.map((c) => `${c.code}|${c.category}`));
+    const map = new Map();
+    visibleItems.forEach((i) => {
+      if (known.has(`${i.code}|${i.category}`)) return;
+      const list = map.get(i.code) || [];
+      list.push(i);
+      map.set(i.code, list);
+    });
+    return map;
+  }, [visibleCats, visibleItems]);
+
   const byWedding = useMemo(
     () =>
       WEDDING_LIST.filter((w) => inScope(w.code, scope)).map((w) => ({
         wedding: w,
         cats: visibleCats.filter((c) => c.code === w.code),
+        orphans: orphansByCode.get(w.code) || [],
       })),
-    [visibleCats, scope]
+    [visibleCats, orphansByCode, scope]
   );
 
   const combined = useMemo(() => {
@@ -223,11 +240,12 @@ export default function BudgetView({ categories: initialCats = [], items: initia
       </Card>
 
       {/* Per-wedding categories */}
-      {byWedding.map(({ wedding, cats }) => (
+      {byWedding.map(({ wedding, cats, orphans }) => (
         <WeddingBudget
           key={wedding.code}
           wedding={wedding}
           cats={cats}
+          orphans={orphans}
           itemsFor={itemsFor}
           t={t}
           onAddExpense={(key) => openNewItem(key)}
@@ -268,10 +286,14 @@ function IconBtn({ children, label, onClick }) {
   );
 }
 
-function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategory, onDeleteCategory, onEditItem, onDeleteItem }) {
+function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense, onEditCategory, onDeleteCategory, onEditItem, onDeleteItem }) {
   const currency = wedding.currency;
   const planned = cats.reduce((s, c) => s + Number(c.planned), 0);
-  const actual = cats.reduce((s, c) => s + itemsFor(c.code, c.category).reduce((a, i) => a + Number(i.actual), 0), 0);
+  const orphanActual = orphans.reduce((a, i) => a + Number(i.actual), 0);
+  // Counts the uncategorised items as well: the combined AUD rollup sums every
+  // item, so leaving them out here made the two totals disagree.
+  const actual =
+    cats.reduce((s, c) => s + itemsFor(c.code, c.category).reduce((a, i) => a + Number(i.actual), 0), 0) + orphanActual;
   const usedPct = pct(actual, planned);
 
   return (
@@ -290,7 +312,7 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
       </div>
 
       <CardBody className="space-y-5">
-        {cats.length === 0 ? (
+        {cats.length === 0 && orphans.length === 0 ? (
           <p className="py-6 text-center text-sm text-stone-400">{t("budget.noCategories")}</p>
         ) : (
           cats.map((c) => {
@@ -357,6 +379,33 @@ function WeddingBudget({ wedding, cats, itemsFor, t, onAddExpense, onEditCategor
             );
           })
         )}
+
+        {orphans.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/40">
+            <div className="px-4 pt-3">
+              <div className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="font-medium text-stone-800">{t("budget.uncategorised")}</span>
+                <span className="text-stone-600">{formatMoney(orphanActual, currency)}</span>
+              </div>
+              <p className="mt-1 text-xs text-stone-500">{t("budget.uncategorisedHint")}</p>
+            </div>
+            <ul className="mt-2 divide-y divide-amber-100 border-t border-amber-100">
+              {orphans.map((it) => (
+                <li key={it.id} className="group/item flex items-center gap-2 px-4 py-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-stone-700">
+                    {it.label || "—"}
+                    <span className="text-stone-400"> · {it.category}</span>
+                  </span>
+                  <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
+                  <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
+                    <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
+                    <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardBody>
     </Card>
   );
@@ -405,8 +454,9 @@ function CategoryForm({ form, setForm, onSave, onClose, t }) {
 function ItemForm({ form, setForm, cats, onSave, onClose, t }) {
   if (!form) return null;
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const [code] = form.categoryKey.split("|");
+  const [code, formCategory] = form.categoryKey.split("|");
   const currency = WEDDINGS[code]?.currency;
+  const known = cats.some((c) => `${c.code}|${c.category}` === form.categoryKey);
   return (
     <Modal
       open={!!form}
@@ -423,6 +473,11 @@ function ItemForm({ form, setForm, cats, onSave, onClose, t }) {
         <div>
           <label className="label">{t("budget.category")}</label>
           <select className="input" value={form.categoryKey} onChange={set("categoryKey")}>
+            {!known && (
+              <option value={form.categoryKey}>
+                {WEDDINGS[code]?.flag} {formCategory} ({t("budget.uncategorised")})
+              </option>
+            )}
             {cats.map((c) => (
               <option key={`${c.code}|${c.category}`} value={`${c.code}|${c.category}`}>
                 {WEDDINGS[c.code]?.flag} {c.category}
