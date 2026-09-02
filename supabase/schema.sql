@@ -117,7 +117,7 @@ create table if not exists vendors (
 -- Per-category planned budget: ONE planned amount per wedding + category.
 create table if not exists budget_categories (
   id          uuid primary key default gen_random_uuid(),
-  wedding_id  uuid references weddings (id) on delete cascade,
+  wedding_id  uuid not null references weddings (id) on delete cascade,
   category    text not null,
   planned     numeric(14,2) not null default 0,
   created_at  timestamptz not null default now(),
@@ -128,7 +128,7 @@ create table if not exists budget_categories (
 -- now lives on budget_categories (not here).
 create table if not exists budget_items (
   id          uuid primary key default gen_random_uuid(),
-  wedding_id  uuid references weddings (id) on delete cascade,
+  wedding_id  uuid not null references weddings (id) on delete cascade,
   category    text not null,
   label       text,
   actual      numeric(14,2) not null default 0,
@@ -136,6 +136,35 @@ create table if not exists budget_items (
 );
 -- Migrate older installs: planned moved to budget_categories.
 alter table budget_items drop column if exists planned;
+
+-- Migrate older installs: wedding_id used to be nullable on both budget tables.
+--
+-- Unlike `tasks`, a budget row has no "shared" meaning — the Budget page groups
+-- every row under one wedding or the other, so a null wedding_id renders
+-- nowhere while still counting toward the combined AUD rollup. That is money on
+-- screen with no line to explain it, which is the whole bug class this closes.
+--
+-- Warn rather than abort when such rows already exist: this file is documented
+-- as safe to re-run, and a hard failure here would stop the rest of it. The
+-- warning names what to fix, and re-running applies the constraint afterwards.
+do $$
+declare
+  bad_items int;
+  bad_cats  int;
+begin
+  select count(*) into bad_items from budget_items where wedding_id is null;
+  select count(*) into bad_cats  from budget_categories where wedding_id is null;
+
+  if bad_items > 0 or bad_cats > 0 then
+    raise warning using message = format(
+      'Skipped NOT NULL on wedding_id: %s budget_items and %s budget_categories row(s) have none. '
+      'Assign each to a wedding (or delete it), then re-run this file.',
+      bad_items, bad_cats);
+  else
+    alter table budget_items      alter column wedding_id set not null;
+    alter table budget_categories alter column wedding_id set not null;
+  end if;
+end $$;
 
 create table if not exists tasks (
   id          uuid primary key default gen_random_uuid(),
