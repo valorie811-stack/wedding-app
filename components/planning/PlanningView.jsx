@@ -29,6 +29,8 @@ const blank = {
   recurFreq: "",
   recurUntil: "",
   remindDays: "",
+  vendorId: "",
+  eventId: "",
 };
 
 function fmtDate(date, locale) {
@@ -43,10 +45,14 @@ function fmtDate(date, locale) {
   }
 }
 
-export default function PlanningView({ tasks: initial, preview }) {
+export default function PlanningView({ tasks: initial, vendors = [], events = [], preview }) {
   const { t, scope, locale } = useApp();
   const [tasks, setTasks] = useState(initial);
   const [form, setForm] = useState(null);
+
+  // Tasks store only ids; the board shows names.
+  const vendorById = useMemo(() => new Map(vendors.map((v) => [v.id, v.name])), [vendors]);
+  const eventById = useMemo(() => new Map(events.map((e) => [e.id, e.name])), [events]);
   const { error, dismissError, run } = useOptimisticWrite();
   const [dragId, setDragId] = useState(null);
   const [overCol, setOverCol] = useState(null);
@@ -102,6 +108,8 @@ export default function PlanningView({ tasks: initial, preview }) {
       recurFreq: task.recurFreq || "",
       recurUntil: task.recurUntil || "",
       remindDays: task.remindDays == null ? "" : task.remindDays,
+      vendorId: task.vendorId || "",
+      eventId: task.eventId || "",
     });
   }
 
@@ -118,6 +126,9 @@ export default function PlanningView({ tasks: initial, preview }) {
       recurFreq: form.recurFreq || null,
       recurUntil: form.recurFreq && form.recurUntil ? form.recurUntil : null,
       remindDays,
+      // "" from the empty option means "not linked" — send null, not "".
+      vendorId: form.vendorId || null,
+      eventId: form.eventId || null,
     };
     const editingId = form.id;
     const previousRow = editingId ? tasks.find((t) => t.id === editingId) : null;
@@ -237,6 +248,12 @@ export default function PlanningView({ tasks: initial, preview }) {
                         </span>
                       )}
                       {task.assignee && <span>👤 {task.assignee}</span>}
+                      {vendorById.get(task.vendorId) && (
+                        <span title={t("planning.linkedVendor")}>🏷 {vendorById.get(task.vendorId)}</span>
+                      )}
+                      {eventById.get(task.eventId) && (
+                        <span title={t("planning.linkedEvent")}>📍 {eventById.get(task.eventId)}</span>
+                      )}
                     </div>
                     <div className="mt-2 flex items-center justify-between border-t border-stone-100 pt-2">
                       <select
@@ -279,7 +296,15 @@ export default function PlanningView({ tasks: initial, preview }) {
         ))}
       </div>
 
-      <TaskForm form={form} setForm={setForm} onSave={handleSave} onClose={() => setForm(null)} t={t} />
+      <TaskForm
+        form={form}
+        setForm={setForm}
+        onSave={handleSave}
+        onClose={() => setForm(null)}
+        t={t}
+        vendors={vendors}
+        events={events}
+      />
     </div>
   );
 }

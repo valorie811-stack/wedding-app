@@ -197,8 +197,18 @@ create table if not exists tasks (
               check (recur_freq in ('daily','weekly','monthly')), -- null = one-off
   recur_until date,           -- optional last occurrence (inclusive)
   remind_days_before int,     -- in-app reminder lead time; null = no reminder
+  -- What this task is about. Both optional: plenty of tasks ("book flights")
+  -- belong to neither. ON DELETE SET NULL rather than CASCADE — dropping a
+  -- vendor should not silently delete the task reminding you to chase them,
+  -- it should just leave the task unattached.
+  vendor_id   uuid references vendors (id) on delete set null,
+  event_id    uuid references events (id) on delete set null,
   created_at  timestamptz not null default now()
 );
+-- Migrate older installs: the create above is `if not exists`, so on a database
+-- that already has the table these columns would never appear.
+alter table tasks add column if not exists vendor_id uuid references vendors (id) on delete set null;
+alter table tasks add column if not exists event_id  uuid references events  (id) on delete set null;
 
 -- Seating (Table Planner): tables per wedding + guest assignments.
 create table if not exists seating_tables (

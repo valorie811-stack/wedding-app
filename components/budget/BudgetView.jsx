@@ -15,7 +15,12 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import ExportButton from "@/components/share/ExportButton";
 import Icon from "@/components/ui/Icon";
 
-export default function BudgetView({ categories: initialCats = [], items: initialItems = [], preview }) {
+export default function BudgetView({
+  categories: initialCats = [],
+  items: initialItems = [],
+  commitments = [],
+  preview,
+}) {
   const { t, scope } = useApp();
   const [categories, setCategories] = useState(initialCats);
   const [items, setItems] = useState(initialItems);
@@ -41,6 +46,16 @@ export default function BudgetView({ categories: initialCats = [], items: initia
     });
     return map;
   }, [visibleCats, visibleItems]);
+
+  // Contracted totals per code|category, so a category can show what is signed
+  // for next to what was budgeted for it.
+  const commitmentByKey = useMemo(() => {
+    const map = new Map();
+    commitments
+      .filter((c) => inScope(c.code, scope))
+      .forEach((c) => map.set(`${c.code}|${c.category}`, c));
+    return map;
+  }, [commitments, scope]);
 
   const byWedding = useMemo(
     () =>
@@ -247,6 +262,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
           wedding={wedding}
           cats={cats}
           orphans={orphans}
+          commitmentByKey={commitmentByKey}
           itemsFor={itemsFor}
           t={t}
           onAddExpense={(key) => openNewItem(key)}
@@ -271,6 +287,27 @@ function Stat({ label, value, tone = "ink" }) {
       <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
     </div>
+  );
+}
+
+// Contracts signed for a category, shown next to what was budgeted for it.
+// Over-commitment is the case worth catching: the money has not moved yet, so
+// planned-vs-actual still looks healthy while the category is already sunk.
+function CommitmentLine({ commitment, planned, currency, t }) {
+  if (!commitment || !commitment.committed) return null;
+  const over = commitment.committed > planned;
+  return (
+    <p className={`mt-0.5 text-xs ${over ? "text-amber-700" : "text-stone-400"}`}>
+      {over && <span aria-hidden>⚠ </span>}
+      {t("budget.committed")}: {formatMoney(commitment.committed, currency)}
+      {commitment.outstanding > 0 && (
+        <span className="text-stone-400">
+          {" · "}
+          {formatMoney(commitment.outstanding, currency)} {t("budget.outstanding")}
+        </span>
+      )}
+      {over && ` · ${formatMoney(commitment.committed - planned, currency)} ${t("budget.overPlanned")}`}
+    </p>
   );
 }
 
@@ -326,7 +363,7 @@ function IconBtn({ children, label, onClick }) {
   );
 }
 
-function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense, onEditCategory, onDeleteCategory, onEditItem, onDeleteItem }) {
+function WeddingBudget({ wedding, cats, orphans = [], commitmentByKey = new Map(), itemsFor, t, onAddExpense, onEditCategory, onDeleteCategory, onEditItem, onDeleteItem }) {
   const currency = wedding.currency;
   const planned = cats.reduce((s, c) => s + Number(c.planned), 0);
   const orphanActual = orphans.reduce((a, i) => a + Number(i.actual), 0);
@@ -383,6 +420,12 @@ function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense,
                         ? `${formatMoney(remaining, currency)} ${t("budget.remaining").toLowerCase()}`
                         : `${formatMoney(-remaining, currency)} ${t("budget.overBudget").toLowerCase()}`}
                     </p>
+                    <CommitmentLine
+                      commitment={commitmentByKey.get(`${c.code}|${c.category}`)}
+                      planned={Number(c.planned)}
+                      currency={currency}
+                      t={t}
+                    />
                   </div>
                   <div className="flex shrink-0 gap-1 self-start opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
                     <IconBtn label={t("common.edit")} onClick={() => onEditCategory(c)}><Icon name="edit" size={15} /></IconBtn>
