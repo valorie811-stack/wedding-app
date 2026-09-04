@@ -18,9 +18,9 @@ const DIET_OPTIONS = ["halal", "vegetarian", "vegan", "gluten-free"];
 const SIDES = ["bride", "groom", "both"];
 const STATUSES = ["confirmed", "pending", "declined"];
 const STATUS_TONE = { confirmed: "green", pending: "amber", declined: "red" };
-const COUNTRIES = ["Australia", "Malaysia", "Indonesia", "Misc countries"];
+const COUNTRIES = ["Australia", "Malaysia", "Vietnam", "Indonesia", "Misc countries"];
 const CATEGORIES = ["Family", "Friends", "Work", "Other"];
-const INVITE_STATUSES = ["Invite", "Not 100%", "Don't invite"];
+const INVITE_STATUSES = ["Invite", "Not 100%"];
 
 // The stored value doubles as the translation key (same idiom as
 // guests.diet.*), but makeT falls back to returning the key path when a key is
@@ -37,12 +37,11 @@ function optionLabel(t, group, value) {
   return label === key ? value : label;
 }
 
-// Palette pairs copied from Badge's amber / red / neutral tones — the tone
+// Palette pairs copied from Badge's amber and neutral tones — the tone
 // vocabulary is Badge's, but the chip below is deliberately not a <Badge>: see
 // InviteChip.
 const INVITE_TONE = {
   "Not 100%": "bg-gold-100 text-gold-700", // Badge tone="amber"
-  "Don't invite": "bg-hp-100 text-hp-800", // Badge tone="red"
 };
 
 // Invite status is the one new field with planning weight, so it gets a

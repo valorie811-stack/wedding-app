@@ -114,14 +114,14 @@ where not exists (select 1 from tasks t where t.title = 'Finalise guest list acr
 insert into guests (full_name, side, plus_one, plus_one_name, dietary, country, category, invite_or_not)
 select g.full_name, g.side, g.plus_one, g.plus_one_name, g.dietary, g.country, g.category, g.invite_or_not
 from (values
-  ('Nguyễn Văn An',     'bride', true,  'Nguyễn Thị Mai',  '{}'::text[],           'Misc countries', 'Family',  'Invite'),
-  ('Trần Thị Bình',     'bride', false, null,              '{vegetarian}'::text[], 'Misc countries', 'Family',  'Invite'),
+  ('Nguyễn Văn An',     'bride', true,  'Nguyễn Thị Mai',  '{}'::text[],           'Vietnam',        'Family',  'Invite'),
+  ('Trần Thị Bình',     'bride', false, null,              '{vegetarian}'::text[], 'Vietnam',        'Family',  'Invite'),
   ('Lê Hoàng Cường',    'groom', true,  'Phạm Thị Hương',  '{}'::text[],           'Australia',      'Friends', 'Invite'),
-  ('Phạm Thu Dung',     'bride', false, null,              '{}'::text[],           'Misc countries', 'Friends', 'Invite'),
+  ('Phạm Thu Dung',     'bride', false, null,              '{}'::text[],           'Vietnam',        'Friends', 'Invite'),
   ('Đỗ Minh Đức',       'groom', true,  'Trần Thị Ngọc',   '{}'::text[],           'Australia',      'Family',  'Invite'),
   ('Vũ Thị Hà',         'bride', false, null,              '{}'::text[],           'Misc countries', 'Work',    'Invite'),
   ('Hoàng Văn Hải',     'groom', false, null,              '{}'::text[],           'Australia',      'Friends', 'Not 100%'),
-  ('Bùi Thị Lan',       'bride', true,  'Bùi Văn Tú',      '{}'::text[],           'Misc countries', 'Family',  'Don''t invite'),
+  ('Bùi Thị Lan',       'bride', true,  'Bùi Văn Tú',      '{}'::text[],           'Vietnam',        'Family',  'Not 100%'),
   ('Tan Wei Ming',      'groom', true,  'Tan Siew Lan',    '{}'::text[],           'Malaysia',       'Family',  'Invite'),
   ('Lim Mei Ling',      'bride', false, null,              '{}'::text[],           'Malaysia',       'Family',  'Invite'),
   ('Wong Kah Wai',      'groom', true,  'Wong Pui Yee',    '{}'::text[],           'Malaysia',       'Friends', 'Invite'),

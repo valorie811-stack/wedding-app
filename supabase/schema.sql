@@ -82,9 +82,9 @@ create table if not exists guests (
   plus_one_name text,                            -- null unless plus_one is true
   dietary       text[] not null default '{}',    -- e.g. {halal,vegetarian}
   notes         text,
-  country       text,                            -- Australia | Malaysia | Indonesia | Misc countries
+  country       text,                            -- Australia | Malaysia | Vietnam | Indonesia | Misc countries
   category      text,                            -- Family | Friends | Work | Other
-  invite_or_not text,                            -- Invite | Not 100% | Don't invite
+  invite_or_not text,                            -- Invite | Not 100%
   created_at    timestamptz not null default now()
 );
 -- Migrate older installs: the create above is `if not exists`, so on a database
