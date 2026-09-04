@@ -13,6 +13,8 @@ export const blankTask = () => ({
   title: "",
   due: "",
   assignee: "",
+  vendorId: "",
+  eventId: "",
   status: "todo",
   recurFreq: "",
   recurUntil: "",
@@ -22,7 +24,7 @@ export const blankTask = () => ({
 // Shared add/edit form for a task (planning milestone). Used by both the
 // Planning board and the Event Scheduler. `onDelete` is optional — when
 // provided and editing an existing task, a Delete button is shown.
-export default function TaskForm({ form, setForm, onSave, onDelete, onClose, t }) {
+export default function TaskForm({ form, setForm, onSave, onDelete, onClose, t, vendors = [], events = [] }) {
   if (!form) return null;
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const isEdit = !!form.id;
@@ -90,6 +92,30 @@ export default function TaskForm({ form, setForm, onSave, onDelete, onClose, t }
           <div>
             <label className="label">{t("planning.assignee")}</label>
             <input className="input" value={form.assignee} onChange={set("assignee")} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t("planning.linkedVendor")}</label>
+            <select className="input" value={form.vendorId} onChange={set("vendorId")}>
+              <option value="">{t("planning.noLink")}</option>
+              {vendors
+                .filter((v) => !form.code || v.code === form.code)
+                .map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">{t("planning.linkedEvent")}</label>
+            <select className="input" value={form.eventId} onChange={set("eventId")}>
+              <option value="">{t("planning.noLink")}</option>
+              {events
+                .filter((e) => !form.code || e.code === form.code)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
+                ))}
+            </select>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">

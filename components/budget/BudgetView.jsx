@@ -15,7 +15,12 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import ExportButton from "@/components/share/ExportButton";
 import Icon from "@/components/ui/Icon";
 
-export default function BudgetView({ categories: initialCats = [], items: initialItems = [], preview }) {
+export default function BudgetView({
+  categories: initialCats = [],
+  items: initialItems = [],
+  commitments = [],
+  preview,
+}) {
   const { t, scope } = useApp();
   const [categories, setCategories] = useState(initialCats);
   const [items, setItems] = useState(initialItems);
@@ -41,6 +46,16 @@ export default function BudgetView({ categories: initialCats = [], items: initia
     });
     return map;
   }, [visibleCats, visibleItems]);
+
+  // Contracted totals per code|category, so a category can show what is signed
+  // for next to what was budgeted for it.
+  const commitmentByKey = useMemo(() => {
+    const map = new Map();
+    commitments
+      .filter((c) => inScope(c.code, scope))
+      .forEach((c) => map.set(`${c.code}|${c.category}`, c));
+    return map;
+  }, [commitments, scope]);
 
   const byWedding = useMemo(
     () =>
@@ -201,6 +216,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
         <div>
           <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("budget.title")}</h1>
           <p className="mt-0.5 text-sm text-stone-500">{t("budget.subtitle")}</p>
+          <p className="mt-0.5 text-xs text-stone-400">{t("budget.vendorPaymentsHint")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
@@ -246,6 +262,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
           wedding={wedding}
           cats={cats}
           orphans={orphans}
+          commitmentByKey={commitmentByKey}
           itemsFor={itemsFor}
           t={t}
           onAddExpense={(key) => openNewItem(key)}
@@ -273,6 +290,66 @@ function Stat({ label, value, tone = "ink" }) {
   );
 }
 
+// Contracts signed for a category, shown next to what was budgeted for it.
+// Over-commitment is the case worth catching: the money has not moved yet, so
+// planned-vs-actual still looks healthy while the category is already sunk.
+function CommitmentLine({ commitment, planned, currency, t }) {
+  if (!commitment || !commitment.committed) return null;
+  const over = commitment.committed > planned;
+  return (
+    <p className={`mt-0.5 text-xs ${over ? "text-amber-700" : "text-stone-400"}`}>
+      {over && <span aria-hidden>⚠ </span>}
+      {t("budget.committed")}: {formatMoney(commitment.committed, currency)}
+      {commitment.outstanding > 0 && (
+        <span className="text-stone-400">
+          {" · "}
+          {formatMoney(commitment.outstanding, currency)} {t("budget.outstanding")}
+        </span>
+      )}
+      {over && ` · ${formatMoney(commitment.committed - planned, currency)} ${t("budget.overPlanned")}`}
+    </p>
+  );
+}
+
+// One row for both the per-category list and the uncategorised block. A vendor
+// payment is derived from the vendor row, so it carries the vendor's name as its
+// source and offers no edit/delete here — changing it in two places is exactly
+// the drift this relationship was added to avoid.
+function ItemRow({ it, currency, t, onEditItem, onDeleteItem, showCategory }) {
+  const fromVendor = !!it.vendorId;
+  return (
+    <li className="group/item flex items-center gap-2 px-4 py-2 text-sm">
+      <span className="min-w-0 flex-1 truncate text-stone-700">
+        {it.label || "—"}
+        {showCategory && <span className="text-stone-400"> · {it.category}</span>}
+        {fromVendor && (
+          <span className="ml-2 whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 text-[11px] text-stone-500">
+            {t("budget.fromVendor")}
+          </span>
+        )}
+      </span>
+      <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
+      <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
+        {fromVendor ? (
+          <a
+            href="/vendors"
+            aria-label={t("budget.editOnVendors")}
+            title={t("budget.editOnVendors")}
+            className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+          >
+            <Icon name="vendors" size={15} />
+          </a>
+        ) : (
+          <>
+            <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
+            <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function IconBtn({ children, label, onClick }) {
   return (
     <button
@@ -286,7 +363,7 @@ function IconBtn({ children, label, onClick }) {
   );
 }
 
-function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense, onEditCategory, onDeleteCategory, onEditItem, onDeleteItem }) {
+function WeddingBudget({ wedding, cats, orphans = [], commitmentByKey = new Map(), itemsFor, t, onAddExpense, onEditCategory, onDeleteCategory, onEditItem, onDeleteItem }) {
   const currency = wedding.currency;
   const planned = cats.reduce((s, c) => s + Number(c.planned), 0);
   const orphanActual = orphans.reduce((a, i) => a + Number(i.actual), 0);
@@ -343,6 +420,12 @@ function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense,
                         ? `${formatMoney(remaining, currency)} ${t("budget.remaining").toLowerCase()}`
                         : `${formatMoney(-remaining, currency)} ${t("budget.overBudget").toLowerCase()}`}
                     </p>
+                    <CommitmentLine
+                      commitment={commitmentByKey.get(`${c.code}|${c.category}`)}
+                      planned={Number(c.planned)}
+                      currency={currency}
+                      t={t}
+                    />
                   </div>
                   <div className="flex shrink-0 gap-1 self-start opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
                     <IconBtn label={t("common.edit")} onClick={() => onEditCategory(c)}><Icon name="edit" size={15} /></IconBtn>
@@ -356,14 +439,14 @@ function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense,
                     <li className="px-4 py-2 text-xs text-stone-400">{t("budget.noExpenses")}</li>
                   ) : (
                     catItems.map((it) => (
-                      <li key={it.id} className="group/item flex items-center gap-2 px-4 py-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate text-stone-700">{it.label || "—"}</span>
-                        <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
-                        <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
-                          <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
-                          <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
-                        </div>
-                      </li>
+                      <ItemRow
+                        key={it.id}
+                        it={it}
+                        currency={currency}
+                        t={t}
+                        onEditItem={onEditItem}
+                        onDeleteItem={onDeleteItem}
+                      />
                     ))
                   )}
                 </ul>
@@ -391,17 +474,15 @@ function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense,
             </div>
             <ul className="mt-2 divide-y divide-amber-100 border-t border-amber-100">
               {orphans.map((it) => (
-                <li key={it.id} className="group/item flex items-center gap-2 px-4 py-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate text-stone-700">
-                    {it.label || "—"}
-                    <span className="text-stone-400"> · {it.category}</span>
-                  </span>
-                  <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
-                  <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
-                    <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
-                    <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
-                  </div>
-                </li>
+                <ItemRow
+                  key={it.id}
+                  it={it}
+                  currency={currency}
+                  t={t}
+                  onEditItem={onEditItem}
+                  onDeleteItem={onDeleteItem}
+                  showCategory
+                />
               ))}
             </ul>
           </div>

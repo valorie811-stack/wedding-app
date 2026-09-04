@@ -233,14 +233,20 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                         {seated.length === 0 && (
                           <p className="w-full py-3 text-center text-xs text-stone-300">{t("tables.dropHere")}</p>
                         )}
-                        {seated.map(({ asg, guest }) => (
+                        {seated.map(({ asg, guest }) => {
+                          const declined = (guest.declinedCodes || []).includes(w.code);
+                          return (
                           <span
                             key={asg.id}
                             draggable
                             onDragStart={() => setDrag({ guestId: guest.id, code: w.code, fromTableId: tbl.id })}
                             onDragEnd={() => setDrag(null)}
-                            className="group/chip inline-flex cursor-grab items-center gap-1 rounded-full bg-kk-50 px-2.5 py-1 text-xs text-kk-800 active:cursor-grabbing"
+                            title={declined ? t("tables.seatedButDeclined") : undefined}
+                            className={`group/chip inline-flex cursor-grab items-center gap-1 rounded-full px-2.5 py-1 text-xs active:cursor-grabbing ${
+                              declined ? "bg-amber-50 text-amber-800 line-through decoration-amber-400" : "bg-kk-50 text-kk-800"
+                            }`}
                           >
+                            {declined && <span aria-hidden>⚠</span>}
                             <ChipLabel guest={guest} />
                             <button
                               onClick={() => doUnassign(tbl.id, guest.id)}
@@ -250,7 +256,8 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                               ×
                             </button>
                           </span>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Non-drag add */}

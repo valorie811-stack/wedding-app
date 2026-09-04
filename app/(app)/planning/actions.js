@@ -26,6 +26,11 @@ export async function saveTask(input) {
     recur_freq: input.recurFreq || null,
     recur_until: input.recurFreq && input.recurUntil ? input.recurUntil : null,
     remind_days_before: Number.isFinite(remindDays) ? remindDays : null,
+    // Optional links to what the task is about. Empty string from the form's
+    // "no link" option must become null, or Postgres rejects it as an invalid
+    // uuid rather than storing "unlinked".
+    vendor_id: input.vendorId || null,
+    event_id: input.eventId || null,
   };
 
   const res = isSeed(input.id)

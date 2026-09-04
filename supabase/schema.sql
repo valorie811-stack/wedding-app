@@ -99,7 +99,7 @@ create table if not exists guest_events (
 
 create table if not exists vendors (
   id              uuid primary key default gen_random_uuid(),
-  wedding_id      uuid references weddings (id) on delete cascade,
+  wedding_id      uuid not null references weddings (id) on delete cascade,
   name            text not null,
   category        text,                        -- photographer, caterer, ...
   contact_name    text,
@@ -113,6 +113,25 @@ create table if not exists vendors (
   notes           text,
   created_at      timestamptz not null default now()
 );
+
+-- Migrate older installs: wedding_id used to be nullable here too. A vendor
+-- belongs to exactly one wedding — the Vendors page groups by it and its
+-- deposits are attributed to that wedding's budget — so a null leaves the
+-- vendor unreachable in every scoped view while its money still counts.
+-- Warn rather than abort, matching the budget tables below.
+do $$
+declare bad_vendors int;
+begin
+  select count(*) into bad_vendors from vendors where wedding_id is null;
+  if bad_vendors > 0 then
+    raise warning using message = format(
+      'Skipped NOT NULL on vendors.wedding_id: %s row(s) have none. '
+      'Assign each to a wedding (or delete it), then re-run this file.',
+      bad_vendors);
+  else
+    alter table vendors alter column wedding_id set not null;
+  end if;
+end $$;
 
 -- Per-category planned budget: ONE planned amount per wedding + category.
 create table if not exists budget_categories (
@@ -178,8 +197,18 @@ create table if not exists tasks (
               check (recur_freq in ('daily','weekly','monthly')), -- null = one-off
   recur_until date,           -- optional last occurrence (inclusive)
   remind_days_before int,     -- in-app reminder lead time; null = no reminder
+  -- What this task is about. Both optional: plenty of tasks ("book flights")
+  -- belong to neither. ON DELETE SET NULL rather than CASCADE — dropping a
+  -- vendor should not silently delete the task reminding you to chase them,
+  -- it should just leave the task unattached.
+  vendor_id   uuid references vendors (id) on delete set null,
+  event_id    uuid references events (id) on delete set null,
   created_at  timestamptz not null default now()
 );
+-- Migrate older installs: the create above is `if not exists`, so on a database
+-- that already has the table these columns would never appear.
+alter table tasks add column if not exists vendor_id uuid references vendors (id) on delete set null;
+alter table tasks add column if not exists event_id  uuid references events  (id) on delete set null;
 
 -- Seating (Table Planner): tables per wedding + guest assignments.
 create table if not exists seating_tables (

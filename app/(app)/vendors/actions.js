@@ -11,12 +11,29 @@ async function weddingIdByCode(supabase, code) {
 
 const isSeed = (id) => !id || String(id).startsWith("seed-");
 
+// wedding_id is NOT NULL on vendors: a vendor with no wedding is unreachable in
+// every scoped view, and its deposit could not be attributed to a wedding's
+// budget. Catch an unresolved code here rather than surfacing a raw constraint
+// violation in the UI.
+const NO_WEDDING = "Could not resolve which wedding this vendor belongs to. Reload and try again.";
+
+// A vendor's deposit is derived into the Budget, Finance and Dashboard views,
+// so a vendor write has to invalidate those too — not just /vendors.
+function refresh() {
+  revalidatePath("/vendors");
+  revalidatePath("/budget");
+  revalidatePath("/finance");
+  revalidatePath("/dashboard");
+}
+
 export async function saveVendor(input) {
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
 
+  const weddingId = await weddingIdByCode(supabase, input.code);
+  if (!weddingId) return { ok: false, error: NO_WEDDING };
   const row = {
-    wedding_id: await weddingIdByCode(supabase, input.code),
+    wedding_id: weddingId,
     name: input.name,
     category: input.category || null,
     contact_name: input.contact_name || null,
@@ -45,7 +62,7 @@ export async function saveVendor(input) {
     };
   }
 
-  revalidatePath("/vendors");
+  refresh();
   return { ok: true, preview: false, id: res.data.id };
 }
 
@@ -55,6 +72,6 @@ export async function deleteVendor(id) {
   if (isSeed(id)) return { ok: true, preview: false };
   const { error } = await supabase.from("vendors").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/vendors");
+  refresh();
   return { ok: true, preview: false };
 }
