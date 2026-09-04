@@ -201,6 +201,7 @@ export default function BudgetView({ categories: initialCats = [], items: initia
         <div>
           <h1 className="font-serif text-2xl font-semibold text-stone-900">{t("budget.title")}</h1>
           <p className="mt-0.5 text-sm text-stone-500">{t("budget.subtitle")}</p>
+          <p className="mt-0.5 text-xs text-stone-400">{t("budget.vendorPaymentsHint")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview && <Badge tone="amber"><Icon name="warning" size={12} />{t("common.preview")}</Badge>}
@@ -270,6 +271,45 @@ function Stat({ label, value, tone = "ink" }) {
       <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
     </div>
+  );
+}
+
+// One row for both the per-category list and the uncategorised block. A vendor
+// payment is derived from the vendor row, so it carries the vendor's name as its
+// source and offers no edit/delete here — changing it in two places is exactly
+// the drift this relationship was added to avoid.
+function ItemRow({ it, currency, t, onEditItem, onDeleteItem, showCategory }) {
+  const fromVendor = !!it.vendorId;
+  return (
+    <li className="group/item flex items-center gap-2 px-4 py-2 text-sm">
+      <span className="min-w-0 flex-1 truncate text-stone-700">
+        {it.label || "—"}
+        {showCategory && <span className="text-stone-400"> · {it.category}</span>}
+        {fromVendor && (
+          <span className="ml-2 whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 text-[11px] text-stone-500">
+            {t("budget.fromVendor")}
+          </span>
+        )}
+      </span>
+      <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
+      <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
+        {fromVendor ? (
+          <a
+            href="/vendors"
+            aria-label={t("budget.editOnVendors")}
+            title={t("budget.editOnVendors")}
+            className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+          >
+            <Icon name="vendors" size={15} />
+          </a>
+        ) : (
+          <>
+            <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
+            <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
+          </>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -356,14 +396,14 @@ function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense,
                     <li className="px-4 py-2 text-xs text-stone-400">{t("budget.noExpenses")}</li>
                   ) : (
                     catItems.map((it) => (
-                      <li key={it.id} className="group/item flex items-center gap-2 px-4 py-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate text-stone-700">{it.label || "—"}</span>
-                        <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
-                        <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
-                          <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
-                          <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
-                        </div>
-                      </li>
+                      <ItemRow
+                        key={it.id}
+                        it={it}
+                        currency={currency}
+                        t={t}
+                        onEditItem={onEditItem}
+                        onDeleteItem={onDeleteItem}
+                      />
                     ))
                   )}
                 </ul>
@@ -391,17 +431,15 @@ function WeddingBudget({ wedding, cats, orphans = [], itemsFor, t, onAddExpense,
             </div>
             <ul className="mt-2 divide-y divide-amber-100 border-t border-amber-100">
               {orphans.map((it) => (
-                <li key={it.id} className="group/item flex items-center gap-2 px-4 py-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate text-stone-700">
-                    {it.label || "—"}
-                    <span className="text-stone-400"> · {it.category}</span>
-                  </span>
-                  <span className="text-stone-600">{formatMoney(it.actual, currency)}</span>
-                  <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover/item:opacity-100">
-                    <IconBtn label={t("common.edit")} onClick={() => onEditItem(it)}><Icon name="edit" size={15} /></IconBtn>
-                    <IconBtn label={t("common.delete")} onClick={() => onDeleteItem(it)}><Icon name="trash" size={15} /></IconBtn>
-                  </div>
-                </li>
+                <ItemRow
+                  key={it.id}
+                  it={it}
+                  currency={currency}
+                  t={t}
+                  onEditItem={onEditItem}
+                  onDeleteItem={onDeleteItem}
+                  showCategory
+                />
               ))}
             </ul>
           </div>

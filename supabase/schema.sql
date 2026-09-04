@@ -99,7 +99,7 @@ create table if not exists guest_events (
 
 create table if not exists vendors (
   id              uuid primary key default gen_random_uuid(),
-  wedding_id      uuid references weddings (id) on delete cascade,
+  wedding_id      uuid not null references weddings (id) on delete cascade,
   name            text not null,
   category        text,                        -- photographer, caterer, ...
   contact_name    text,
@@ -113,6 +113,25 @@ create table if not exists vendors (
   notes           text,
   created_at      timestamptz not null default now()
 );
+
+-- Migrate older installs: wedding_id used to be nullable here too. A vendor
+-- belongs to exactly one wedding — the Vendors page groups by it and its
+-- deposits are attributed to that wedding's budget — so a null leaves the
+-- vendor unreachable in every scoped view while its money still counts.
+-- Warn rather than abort, matching the budget tables below.
+do $$
+declare bad_vendors int;
+begin
+  select count(*) into bad_vendors from vendors where wedding_id is null;
+  if bad_vendors > 0 then
+    raise warning using message = format(
+      'Skipped NOT NULL on vendors.wedding_id: %s row(s) have none. '
+      'Assign each to a wedding (or delete it), then re-run this file.',
+      bad_vendors);
+  else
+    alter table vendors alter column wedding_id set not null;
+  end if;
+end $$;
 
 -- Per-category planned budget: ONE planned amount per wedding + category.
 create table if not exists budget_categories (

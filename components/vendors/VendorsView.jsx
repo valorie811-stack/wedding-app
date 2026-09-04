@@ -39,7 +39,7 @@ const blank = {
   notes: "",
 };
 
-export default function VendorsView({ vendors: initial, preview }) {
+export default function VendorsView({ vendors: initial, categories: budgetCategories = [], preview }) {
   const { t, scope } = useApp();
   const [vendors, setVendors] = useState(initial);
   const [form, setForm] = useState(null);
@@ -47,12 +47,27 @@ export default function VendorsView({ vendors: initial, preview }) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const { error, dismissError, run } = useOptimisticWrite();
 
-  // Derived from current state, not the server prop, so a category typed into a
-  // brand-new vendor shows up in this filter without a page reload.
+  // The filter lists whatever categories vendors actually use, so a vendor still
+  // carrying a category the budget has since dropped stays findable.
   const categories = useMemo(
     () => [...new Set(vendors.map((v) => v.category).filter(Boolean))].sort(),
     [vendors]
   );
+
+  // Budget categories are per wedding (budget_categories is unique on
+  // wedding + category), so the form offers only the ones that exist for the
+  // wedding being edited.
+  const categoriesByCode = useMemo(() => {
+    const map = new Map();
+    budgetCategories.forEach((c) => {
+      if (!c.code) return;
+      const list = map.get(c.code) || [];
+      if (!list.includes(c.category)) list.push(c.category);
+      map.set(c.code, list);
+    });
+    map.forEach((list) => list.sort());
+    return map;
+  }, [budgetCategories]);
 
   const visible = useMemo(
     () =>
@@ -225,12 +240,28 @@ export default function VendorsView({ vendors: initial, preview }) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((v) => (
-            <VendorCard key={v.id} v={v} t={t} onEdit={openEdit} onDelete={handleDelete} />
+            <VendorCard
+              key={v.id}
+              v={v}
+              t={t}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              knownCategory={
+                !v.category || (categoriesByCode.get(v.code) || []).includes(v.category)
+              }
+            />
           ))}
         </div>
       )}
 
-      <VendorForm form={form} setForm={setForm} onSave={handleSave} onClose={() => setForm(null)} t={t} />
+      <VendorForm
+        form={form}
+        setForm={setForm}
+        onSave={handleSave}
+        onClose={() => setForm(null)}
+        t={t}
+        categoryOptions={form ? categoriesByCode.get(form.code) || [] : []}
+      />
     </div>
   );
 }
@@ -246,7 +277,7 @@ function Stat({ label, value, tone = "ink" }) {
   );
 }
 
-function VendorCard({ v, t, onEdit, onDelete }) {
+function VendorCard({ v, t, onEdit, onDelete, knownCategory = true }) {
   const currency = v.currency;
   const paidPct = pct(v.deposit_paid, v.total_cost);
   const balance = Math.max(0, Number(v.total_cost) - Number(v.deposit_paid));
@@ -256,7 +287,14 @@ function VendorCard({ v, t, onEdit, onDelete }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="truncate font-semibold text-stone-900">{v.name}</h3>
-            <p className="text-xs text-stone-500">{v.category || "—"}</p>
+            <p className="text-xs text-stone-500">
+              {v.category || "—"}
+              {v.category && !knownCategory && (
+                <span className="ml-1 text-amber-600" title={t("vendors.categoryNotInBudget")}>
+                  ⚠
+                </span>
+              )}
+            </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <Badge tone={v.code === "HP" ? "hp" : "kk"}>{v.code}</Badge>
@@ -316,7 +354,7 @@ function VendorCard({ v, t, onEdit, onDelete }) {
   );
 }
 
-function VendorForm({ form, setForm, onSave, onClose, t }) {
+function VendorForm({ form, setForm, onSave, onClose, t, categoryOptions = [] }) {
   if (!form) return null;
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   return (
@@ -350,7 +388,24 @@ function VendorForm({ form, setForm, onSave, onClose, t }) {
           </div>
           <div>
             <label className="label">{t("vendors.category")}</label>
-            <input className="input" value={form.category} onChange={set("category")} />
+            <select className="input" value={form.category} onChange={set("category")}>
+              <option value="">{t("vendors.noCategory")}</option>
+              {categoryOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              {/* An existing value the budget no longer carries stays selectable
+                  so opening the form cannot silently re-file the vendor. */}
+              {form.category && !categoryOptions.includes(form.category) && (
+                <option value={form.category}>
+                  {form.category} ({t("budget.uncategorised")})
+                </option>
+              )}
+            </select>
+            <p className="mt-1 text-xs text-stone-400">
+              {categoryOptions.length === 0
+                ? t("vendors.noBudgetCategories")
+                : t("vendors.categoryFromBudget")}
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
