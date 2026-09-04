@@ -82,6 +82,38 @@ export default function DashboardView({ source, preview }) {
         />
       </div>
 
+      {d.halal.length > 0 && (
+        <div className="grid gap-4">
+          {d.halal.map((h) => {
+            const problem = h.cateringBooked > 0 && h.uncertified > 0;
+            const unknown = h.cateringBooked === 0;
+            return (
+              <div
+                key={h.code}
+                className={`rounded-2xl border px-4 py-3 text-sm ${
+                  problem ? "border-amber-200 bg-amber-50/60" : "border-stone-200 bg-white"
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{WEDDINGS[h.code]?.flag}</span>
+                  <span className="font-medium text-stone-800">{t("dashboard.halalTitle")}</span>
+                  <Badge tone={h.code === "HP" ? "hp" : "kk"}>{h.code}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-stone-600">
+                  {t("dashboard.halalGuests", { count: h.guestsNeedingHalal })}
+                  {" · "}
+                  {problem
+                    ? t("dashboard.halalUncertified")
+                    : unknown
+                      ? t("dashboard.halalNoCaterer")
+                      : t("dashboard.halalOk")}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* RSVP + Budget */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
