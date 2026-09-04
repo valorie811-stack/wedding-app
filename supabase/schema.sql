@@ -82,11 +82,17 @@ create table if not exists guests (
   plus_one_name text,                            -- null unless plus_one is true
   dietary       text[] not null default '{}',    -- e.g. {halal,vegetarian}
   notes         text,
+  country       text,                            -- Australia | Malaysia | Vietnam | Indonesia | Misc countries
+  category      text,                            -- Family | Friends | Work | Other
+  invite_or_not text,                            -- Invite | Not 100%
   created_at    timestamptz not null default now()
 );
 -- Migrate older installs: the create above is `if not exists`, so on a database
--- that already has the table it is a no-op and the column would never appear.
+-- that already has the table it is a no-op and these columns would never appear.
 alter table guests add column if not exists plus_one_name text;
+alter table guests add column if not exists country       text;
+alter table guests add column if not exists category      text;
+alter table guests add column if not exists invite_or_not text;
 
 -- Per-event RSVP status (a guest can be invited to many events across weddings)
 create table if not exists guest_events (

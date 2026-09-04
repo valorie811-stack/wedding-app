@@ -18,6 +18,68 @@ const DIET_OPTIONS = ["halal", "vegetarian", "vegan", "gluten-free"];
 const SIDES = ["bride", "groom", "both"];
 const STATUSES = ["confirmed", "pending", "declined"];
 const STATUS_TONE = { confirmed: "green", pending: "amber", declined: "red" };
+const COUNTRIES = ["Australia", "Malaysia", "Vietnam", "Indonesia", "Misc countries"];
+const CATEGORIES = ["Family", "Friends", "Work", "Other"];
+const INVITE_STATUSES = ["Invite", "Not 100%"];
+
+// The stored value doubles as the translation key (same idiom as
+// guests.diet.*), but makeT falls back to returning the key path when a key is
+// missing — so a value typed straight into Supabase that isn't in the lists
+// above would render on the page as the literal string
+// "guests.countries.Freedonia". Compare the result against the key and fall
+// back to the raw stored value instead. Returns null when nothing is stored, so
+// callers can skip rendering entirely; that also covers the live rows whose
+// side is NULL and used to print "guests.sides.null".
+function optionLabel(t, group, value) {
+  if (!value) return null;
+  const key = `guests.${group}.${value}`;
+  const label = t(key);
+  return label === key ? value : label;
+}
+
+// Palette pairs copied from Badge's amber and neutral tones — the tone
+// vocabulary is Badge's, but the chip below is deliberately not a <Badge>: see
+// InviteChip.
+const INVITE_TONE = {
+  "Not 100%": "bg-gold-100 text-gold-700", // Badge tone="amber"
+};
+
+// Invite status is the one new field with planning weight, so it gets a
+// coloured chip — but only when it says something. "Invite" is the value on
+// roughly 70 of the 85 live rows: a chip on almost every row is chrome, not
+// signal, so the default case is drawn as nothing at all and the eye goes
+// straight to the exceptions a planner actually acts on. An unrecognised value
+// still gets a neutral chip rather than silently vanishing.
+function inviteTone(value) {
+  if (!value || value === "Invite") return null;
+  return INVITE_TONE[value] || "bg-stone-100 text-stone-700"; // Badge tone="neutral"
+}
+
+// Not a <Badge> on purpose. Badge is 11px mono with tracking-chrome, which
+// globals.css reserves for chrome precisely because it mangles Vietnamese
+// diacritics and CJK — and these labels are translated user content ("Không
+// chắc", "不邀请"). Same reason the plus-one name sits outside a Badge.
+function InviteChip({ t, value }) {
+  const tone = inviteTone(value);
+  if (!tone) return null;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-sans text-xs font-medium ${tone}`}>
+      {optionLabel(t, "inviteStatuses", value)}
+    </span>
+  );
+}
+
+// Country and category are descriptors rather than signals, so they ride as
+// plain sans text at the end of the row — outside a Badge for the same
+// glyph-coverage reason as InviteChip. Renders nothing when both are unset.
+function GuestMeta({ t, guest }) {
+  const parts = [
+    optionLabel(t, "countries", guest.country),
+    optionLabel(t, "categories", guest.category),
+  ].filter(Boolean);
+  if (parts.length === 0) return null;
+  return <span className="text-sm text-stone-500">{parts.join(" · ")}</span>;
+}
 
 const blank = {
   id: null,
@@ -27,6 +89,9 @@ const blank = {
   plus_one_name: "",
   dietary: [],
   notes: "",
+  country: "",
+  category: "",
+  invite_or_not: "",
   invites: [],
 };
 
@@ -38,6 +103,9 @@ export default function GuestsView({ guests: initial, events, preview }) {
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [inviteFilter, setInviteFilter] = useState("all");
   // Which summary card is acting as a filter (null = show all in the base set).
   const [metricFilter, setMetricFilter] = useState(null);
 
@@ -79,8 +147,11 @@ export default function GuestsView({ guests: initial, events, preview }) {
       .filter(inScope)
       .filter((g) => !q || g.full_name.toLowerCase().includes(q))
       .filter((g) => sideFilter === "all" || g.side === sideFilter)
-      .filter((g) => statusFilter === "all" || scopedInvites(g).some((i) => i.status === statusFilter));
-  }, [guests, search, sideFilter, statusFilter, scope]); // eslint-disable-line react-hooks/exhaustive-deps
+      .filter((g) => statusFilter === "all" || scopedInvites(g).some((i) => i.status === statusFilter))
+      .filter((g) => countryFilter === "all" || g.country === countryFilter)
+      .filter((g) => categoryFilter === "all" || g.category === categoryFilter)
+      .filter((g) => inviteFilter === "all" || g.invite_or_not === inviteFilter);
+  }, [guests, search, sideFilter, statusFilter, countryFilter, categoryFilter, inviteFilter, scope]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const visible = useMemo(
     () => (metricFilter ? base.filter((g) => matchesMetric(g, metricFilter)) : base),
@@ -116,6 +187,9 @@ export default function GuestsView({ guests: initial, events, preview }) {
       plus_one_name: g.plus_one_name || "",
       dietary: [...(g.dietary || [])],
       notes: g.notes || "",
+      country: g.country || "",
+      category: g.category || "",
+      invite_or_not: g.invite_or_not || "",
       invites: g.invites.map((i) => ({ event_id: i.event_id, status: i.status })),
     });
   }
@@ -178,7 +252,13 @@ export default function GuestsView({ guests: initial, events, preview }) {
   function exportRows() {
     return visible.map((g) => ({
       [t("guests.fullName")]: g.full_name,
-      [t("guests.side")]: t(`guests.sides.${g.side}`),
+      [t("guests.side")]: optionLabel(t, "sides", g.side) || "",
+      // Same unconditional-key rule as the plus-one name below: emit "" rather
+      // than dropping the key, or the column vanishes for everyone whenever the
+      // first guest happens to have no country / category / invite status.
+      [t("guests.country")]: optionLabel(t, "countries", g.country) || "",
+      [t("guests.category")]: optionLabel(t, "categories", g.category) || "",
+      [t("guests.inviteStatus")]: optionLabel(t, "inviteStatuses", g.invite_or_not) || "",
       [t("guests.plusOne")]: g.plus_one ? "✓" : "",
       // Always emit this key, even when empty: toCSV takes its headers from
       // Object.keys(rows[0]) alone, so a conditional key would drop the column
@@ -261,8 +341,9 @@ export default function GuestsView({ guests: initial, events, preview }) {
         </CardBody>
       </Card>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filters — six controls, so the row wraps to a second line on narrower
+          desktops; items-center keeps the wrapped rows aligned. */}
+      <div className="flex flex-wrap items-center gap-2">
         <input
           className="input max-w-xs"
           placeholder={t("guests.searchPlaceholder")}
@@ -282,6 +363,30 @@ export default function GuestsView({ guests: initial, events, preview }) {
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {t(`rsvp.status.${s}`)}
+            </option>
+          ))}
+        </select>
+        <select className="input max-w-[11rem]" value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}>
+          <option value="all">{t("guests.allCountries")}</option>
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {optionLabel(t, "countries", c)}
+            </option>
+          ))}
+        </select>
+        <select className="input max-w-[11rem]" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="all">{t("guests.allCategories")}</option>
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {optionLabel(t, "categories", c)}
+            </option>
+          ))}
+        </select>
+        <select className="input max-w-[11rem]" value={inviteFilter} onChange={(e) => setInviteFilter(e.target.value)}>
+          <option value="all">{t("guests.allInviteStatuses")}</option>
+          {INVITE_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {optionLabel(t, "inviteStatuses", s)}
             </option>
           ))}
         </select>
@@ -306,7 +411,10 @@ export default function GuestsView({ guests: initial, events, preview }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-stone-900">{g.full_name}</span>
-                      <Badge tone="neutral">{t(`guests.sides.${g.side}`)}</Badge>
+                      {/* side is NULL on a couple of live rows — guard it, or
+                          the badge prints the raw key path. */}
+                      {g.side && <Badge tone="neutral">{optionLabel(t, "sides", g.side)}</Badge>}
+                      <InviteChip t={t} value={g.invite_or_not} />
                       {g.plus_one && (
                         <>
                           <Badge tone="gold">+1</Badge>
@@ -323,6 +431,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
                           {t(`guests.diet.${d}`)}
                         </Badge>
                       ))}
+                      <GuestMeta t={t} guest={g} />
                     </div>
                   </div>
                   <div className="hidden flex-wrap justify-end gap-1 sm:flex">
@@ -473,6 +582,46 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
               {SIDES.map((s) => (
                 <option key={s} value={s}>
                   {t(`guests.sides.${s}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Invite status leads the new fields rather than trailing them: it's
+            the planning decision, not a descriptor. The blank option clears the
+            value back to NULL. */}
+        <div>
+          <label className="label">{t("guests.inviteStatus")}</label>
+          <select className="input" value={form.invite_or_not} onChange={set("invite_or_not")}>
+            <option value="">{t("guests.unset")}</option>
+            {INVITE_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {optionLabel(t, "inviteStatuses", s)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t("guests.country")}</label>
+            <select className="input" value={form.country} onChange={set("country")}>
+              <option value="">{t("guests.unset")}</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {optionLabel(t, "countries", c)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">{t("guests.category")}</label>
+            <select className="input" value={form.category} onChange={set("category")}>
+              <option value="">{t("guests.unset")}</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {optionLabel(t, "categories", c)}
                 </option>
               ))}
             </select>
