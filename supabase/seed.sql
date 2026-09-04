@@ -111,28 +111,28 @@ where not exists (select 1 from tasks t where t.title = 'Finalise guest list acr
 -- is not unique, which makes the guard weaker than the old one — it matches the
 -- convention already used elsewhere in this file (tasks guard on title, events
 -- on name_en), and it is the only natural key left on the table.
-insert into guests (full_name, side, plus_one, plus_one_name, dietary)
-select g.full_name, g.side, g.plus_one, g.plus_one_name, g.dietary
+insert into guests (full_name, side, plus_one, plus_one_name, dietary, country, category, invite_or_not)
+select g.full_name, g.side, g.plus_one, g.plus_one_name, g.dietary, g.country, g.category, g.invite_or_not
 from (values
-  ('Nguyễn Văn An',     'bride', true,  'Nguyễn Thị Mai',  '{}'::text[]),
-  ('Trần Thị Bình',     'bride', false, null,              '{vegetarian}'::text[]),
-  ('Lê Hoàng Cường',    'groom', true,  'Phạm Thị Hương',  '{}'::text[]),
-  ('Phạm Thu Dung',     'bride', false, null,              '{}'::text[]),
-  ('Đỗ Minh Đức',       'groom', true,  'Trần Thị Ngọc',   '{}'::text[]),
-  ('Vũ Thị Hà',         'bride', false, null,              '{}'::text[]),
-  ('Hoàng Văn Hải',     'groom', false, null,              '{}'::text[]),
-  ('Bùi Thị Lan',       'bride', true,  'Bùi Văn Tú',      '{}'::text[]),
-  ('Tan Wei Ming',      'groom', true,  'Tan Siew Lan',    '{}'::text[]),
-  ('Lim Mei Ling',      'bride', false, null,              '{}'::text[]),
-  ('Wong Kah Wai',      'groom', true,  'Wong Pui Yee',    '{}'::text[]),
-  ('Siti Nurhaliza',    'bride', false, null,              '{halal}'::text[]),
-  ('Ahmad Faizal',      'groom', true,  'Nurul Ain',       '{halal}'::text[]),
-  ('Chong Li Hua',      'bride', false, null,              '{}'::text[]),
-  ('Goh Boon Hai',      'groom', false, null,              '{}'::text[]),
-  ('Aishah Binti Omar', 'bride', true,  'Omar Bin Yusof',  '{halal}'::text[]),
-  ('James Carter',      'groom', true,  'Sarah Carter',    '{}'::text[]),
-  ('Emily Watson',      'bride', false, null,              '{vegan}'::text[])
-) as g(full_name,side,plus_one,plus_one_name,dietary)
+  ('Nguyễn Văn An',     'bride', true,  'Nguyễn Thị Mai',  '{}'::text[],           'Misc countries', 'Family',  'Invite'),
+  ('Trần Thị Bình',     'bride', false, null,              '{vegetarian}'::text[], 'Misc countries', 'Family',  'Invite'),
+  ('Lê Hoàng Cường',    'groom', true,  'Phạm Thị Hương',  '{}'::text[],           'Australia',      'Friends', 'Invite'),
+  ('Phạm Thu Dung',     'bride', false, null,              '{}'::text[],           'Misc countries', 'Friends', 'Invite'),
+  ('Đỗ Minh Đức',       'groom', true,  'Trần Thị Ngọc',   '{}'::text[],           'Australia',      'Family',  'Invite'),
+  ('Vũ Thị Hà',         'bride', false, null,              '{}'::text[],           'Misc countries', 'Work',    'Invite'),
+  ('Hoàng Văn Hải',     'groom', false, null,              '{}'::text[],           'Australia',      'Friends', 'Not 100%'),
+  ('Bùi Thị Lan',       'bride', true,  'Bùi Văn Tú',      '{}'::text[],           'Misc countries', 'Family',  'Don''t invite'),
+  ('Tan Wei Ming',      'groom', true,  'Tan Siew Lan',    '{}'::text[],           'Malaysia',       'Family',  'Invite'),
+  ('Lim Mei Ling',      'bride', false, null,              '{}'::text[],           'Malaysia',       'Family',  'Invite'),
+  ('Wong Kah Wai',      'groom', true,  'Wong Pui Yee',    '{}'::text[],           'Malaysia',       'Friends', 'Invite'),
+  ('Siti Nurhaliza',    'bride', false, null,              '{halal}'::text[],      'Malaysia',       'Work',    'Invite'),
+  ('Ahmad Faizal',      'groom', true,  'Nurul Ain',       '{halal}'::text[],      'Indonesia',      'Friends', 'Invite'),
+  ('Chong Li Hua',      'bride', false, null,              '{}'::text[],           'Malaysia',       'Family',  'Invite'),
+  ('Goh Boon Hai',      'groom', false, null,              '{}'::text[],           'Malaysia',       'Work',    'Invite'),
+  ('Aishah Binti Omar', 'bride', true,  'Omar Bin Yusof',  '{halal}'::text[],      'Indonesia',      'Family',  'Invite'),
+  ('James Carter',      'groom', true,  'Sarah Carter',    '{}'::text[],           'Australia',      'Friends', 'Not 100%'),
+  ('Emily Watson',      'bride', false, null,              '{vegan}'::text[],      'Australia',      'Work',    'Invite')
+) as g(full_name,side,plus_one,plus_one_name,dietary,country,category,invite_or_not)
 where not exists (select 1 from guests gg where gg.full_name = g.full_name);
 
 -- Link guests to receptions with statuses (idempotent).

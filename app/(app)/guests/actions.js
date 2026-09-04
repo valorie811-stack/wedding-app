@@ -13,6 +13,7 @@ function refresh() {
 
 // Insert/update a guest and sync their per-event invitations in one call.
 // input: { id, full_name, side, plus_one, plus_one_name, dietary[], notes,
+//          country, category, invite_or_not,
 //          invites: [{ event_id, status }] }
 export async function saveGuest(input) {
   const supabase = await createClient();
@@ -27,6 +28,12 @@ export async function saveGuest(input) {
     plus_one_name: input.plus_one ? input.plus_one_name?.trim() || null : null,
     dietary: input.dietary || [],
     notes: input.notes || null,
+    // Free-text columns with no DB constraint; the UI offers a fixed set of
+    // options plus a blank. Empty string means "not set", so store NULL rather
+    // than '' and keep one representation of absent in the database.
+    country: input.country || null,
+    category: input.category || null,
+    invite_or_not: input.invite_or_not || null,
   };
 
   const res = isSeed(input.id)
