@@ -296,7 +296,8 @@ function VendorCard({ v, t, onEdit, onDelete, knownCategory = true }) {
               {v.category || "—"}
               {v.category && !knownCategory && (
                 <span className="ml-1 text-amber-600" title={t("vendors.categoryNotInBudget")}>
-                  ⚠
+                  <Icon name="warning" size={12} className="inline-block align-text-bottom" />
+                  <span className="sr-only">{t("vendors.categoryNotInBudget")}</span>
                 </span>
               )}
             </p>

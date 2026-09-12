@@ -265,7 +265,7 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                               declined ? "bg-amber-50 text-amber-800 line-through decoration-amber-400" : "bg-kk-50 text-kk-800"
                             }`}
                           >
-                            {declined && <span aria-hidden>⚠</span>}
+                            {declined && <Icon name="warning" size={12} />}
                             <ChipLabel guest={guest} />
                             <button
                               onClick={() => doUnassign(tbl.id, guest.id)}

@@ -332,7 +332,7 @@ function CommitmentLine({ commitment, planned, currency, t }) {
   const over = commitment.committed > planned;
   return (
     <p className={`mt-0.5 text-xs ${over ? "text-amber-700" : "text-stone-400"}`}>
-      {over && <span aria-hidden>⚠ </span>}
+      {over && <Icon name="warning" size={12} className="mr-1 inline-block align-text-bottom" />}
       {t("budget.committed")}: {formatMoney(commitment.committed, currency)}
       {commitment.outstanding > 0 && (
         <span className="text-stone-400">

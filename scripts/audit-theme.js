@@ -33,7 +33,7 @@ const SRC_DIRS = ["app", "components", "lib", "context"];
 //    3  clickHint prose in en/vi/zh describing the ✕ affordance
 //   36  phase 2/3 decoration (🔔 🔁 📅 👤 📊 …)
 //
-// RAISED 54 -> 59, AND THAT IS DEBT, NOT AN ALLOWANCE.
+// 54 -> 56, AND THE 2 ARE DEBT, NOT AN ALLOWANCE.
 //
 // 54 was real and was met (commit d7a36fc measured exactly 54). The count then
 // drifted 54 -> 55 -> 59 across later commits and nothing caught it, because
@@ -42,14 +42,15 @@ const SRC_DIRS = ["app", "components", "lib", "context"];
 // The check passed locally at "13/54" while the true figure was 59. Adding CI
 // is what finally measured it on a plain clone.
 //
-// The number is set to the measured truth so the ratchet works from here rather
-// than staying decorative. The five over budget are, with the route back:
-//   3  raw ⚠ in BudgetView (335), TablesView (268), VendorsView (299) — all
-//      three have a drawn equivalent already: <Icon name="warning" size={12} />
-//   2  a judgement call on decoration in PlanningView (📅 👤 🏷 📍) and
-//      VendorsView (👤 ✉ 📞), which is a design decision, not a cleanup
-// Do those and put this back to 54. It must not rise again.
-const EMOJI_BUDGET = 59;
+// Three of those five were raw ⚠ in BudgetView, TablesView and VendorsView and
+// are now <Icon name="warning" />, which is the direction this check exists to
+// push. That is 59 -> 56.
+//
+// The remaining 2 are decoration in PlanningView (📅 👤 🏷 📍) and VendorsView
+// (👤 ✉ 📞). Cutting those is a design decision about how a task and a vendor
+// card read, not a cleanup, so it belongs to whoever owns that — not to an
+// audit branch. Make it and put this back to 54. It must not rise again.
+const EMOJI_BUDGET = 56;
 
 const RAMPS = { stone: t.stone, matcha: t.matcha, hp: t.hp, kk: t.kk, gold: t.gold };
 const WHITE = "#FFFFFF";
