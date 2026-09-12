@@ -13,6 +13,7 @@ import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticW
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import ExportButton from "@/components/share/ExportButton";
 import Icon from "@/components/ui/Icon";
+import { headcount, totalHeads, minPartySize, normalizePartySize } from "@/lib/guests";
 
 const DIET_OPTIONS = ["halal", "vegetarian", "vegan", "gluten-free"];
 const SIDES = ["bride", "groom", "both"];
@@ -87,6 +88,9 @@ const blank = {
   side: "both",
   plus_one: false,
   plus_one_name: "",
+  // "" rather than 1: blank is "not recorded yet", which is the honest state
+  // for a guest who has not replied. normalizePartySize turns it into NULL.
+  party_size: "",
   dietary: [],
   notes: "",
   country: "",
@@ -158,15 +162,24 @@ export default function GuestsView({ guests: initial, events, preview }) {
     [base, metricFilter] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // Distinct-guest counts (one per guest, never per event invitation).
+  // Distinct-guest counts (one per guest, never per event invitation). The
+  // cards count invite units, because that is what the list below shows and
+  // what clicking a card filters — but an invite unit is not a person, so the
+  // two that drive real decisions carry their head count underneath. Confirmed
+  // heads is the number catering and seating actually need.
   const stats = useMemo(
-    () => ({
-      total: base.length,
-      invited: base.filter((g) => matchesMetric(g, "invited")).length,
-      confirmed: base.filter((g) => matchesMetric(g, "confirmed")).length,
-      plusOnes: base.filter((g) => matchesMetric(g, "plusOnes")).length,
-      diet: base.filter((g) => matchesMetric(g, "diet")).length,
-    }),
+    () => {
+      const confirmed = base.filter((g) => matchesMetric(g, "confirmed"));
+      return {
+        total: base.length,
+        totalHeads: totalHeads(base),
+        invited: base.filter((g) => matchesMetric(g, "invited")).length,
+        confirmed: confirmed.length,
+        confirmedHeads: totalHeads(confirmed),
+        plusOnes: base.filter((g) => matchesMetric(g, "plusOnes")).length,
+        diet: base.filter((g) => matchesMetric(g, "diet")).length,
+      };
+    },
     [base] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -185,6 +198,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
       side: g.side || "both",
       plus_one: !!g.plus_one,
       plus_one_name: g.plus_one_name || "",
+      party_size: g.party_size ?? "",
       dietary: [...(g.dietary || [])],
       notes: g.notes || "",
       country: g.country || "",
@@ -207,6 +221,12 @@ export default function GuestsView({ guests: initial, events, preview }) {
       // Mirrors the normalisation in saveGuest, so the optimistic row below
       // matches what actually lands in the database.
       plus_one_name: form.plus_one ? form.plus_one_name.trim() : "",
+      // Mirrors saveGuest exactly — same normalisation, same floor — so the
+      // optimistic row counts the same heads as the one that lands.
+      party_size: (() => {
+        const size = normalizePartySize(form.party_size);
+        return size == null ? null : Math.max(size, minPartySize(form));
+      })(),
       invites,
     };
     const editingId = form.id;
@@ -259,6 +279,10 @@ export default function GuestsView({ guests: initial, events, preview }) {
       [t("guests.country")]: optionLabel(t, "countries", g.country) || "",
       [t("guests.category")]: optionLabel(t, "categories", g.category) || "",
       [t("guests.inviteStatus")]: optionLabel(t, "inviteStatuses", g.invite_or_not) || "",
+      // The head count the app itself counts by, not the raw column — a row
+      // with no recorded size still exports the 1 or 2 it is worth, so the
+      // column sums to the same total the summary cards show.
+      [t("guests.partySize")]: headcount(g),
       [t("guests.plusOne")]: g.plus_one ? "✓" : "",
       // Always emit this key, even when empty: toCSV takes its headers from
       // Object.keys(rows[0]) alone, so a conditional key would drop the column
@@ -304,6 +328,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
             <Stat
               label={t("guests.totalGuests")}
               value={stats.total}
+              sub={t("guests.heads", { n: stats.totalHeads })}
               metric="total"
               active={metricFilter === null}
               onClick={toggleMetric}
@@ -318,6 +343,7 @@ export default function GuestsView({ guests: initial, events, preview }) {
             <Stat
               label={t("rsvp.confirmed")}
               value={stats.confirmed}
+              sub={t("guests.heads", { n: stats.confirmedHeads })}
               tone="green"
               metric="confirmed"
               active={metricFilter === "confirmed"}
@@ -415,17 +441,27 @@ export default function GuestsView({ guests: initial, events, preview }) {
                           the badge prints the raw key path. */}
                       {g.side && <Badge tone="neutral">{optionLabel(t, "sides", g.side)}</Badge>}
                       <InviteChip t={t} value={g.invite_or_not} />
-                      {g.plus_one && (
-                        <>
-                          <Badge tone="gold">+1</Badge>
-                          {/* Name sits outside the Badge on purpose: Badge is
-                              11px mono chrome, which mangles Vietnamese
-                              diacritics and CJK. */}
-                          {g.plus_one_name && (
-                            <span className="text-sm text-stone-700">{g.plus_one_name}</span>
-                          )}
-                        </>
-                      )}
+                      {/* Only rows that bring more than one person get a chip —
+                          a party of one is just a guest, and "×1" would be a
+                          badge that says nothing. A recorded party size
+                          supersedes the plus-one chip: showing both would state
+                          two different head counts on one row. Rows that only
+                          ever had the flag keep the "+1" they have always
+                          shown. */}
+                      {headcount(g) > 1 &&
+                        (g.party_size ? (
+                          <Badge tone="gold">&times;{headcount(g)}</Badge>
+                        ) : (
+                          <>
+                            <Badge tone="gold">+1</Badge>
+                            {/* Name sits outside the Badge on purpose: Badge is
+                                11px mono chrome, which mangles Vietnamese
+                                diacritics and CJK. */}
+                            {g.plus_one_name && (
+                              <span className="text-sm text-stone-700">{g.plus_one_name}</span>
+                            )}
+                          </>
+                        ))}
                       {(g.dietary || []).map((d) => (
                         <Badge key={d} tone="kk">
                           {t(`guests.diet.${d}`)}
@@ -489,7 +525,7 @@ function chipClass(status) {
 // Palette from develop: the ink scale no longer exists, and the focus ring is
 // matcha-600 like every other control — gold-400 measures 2.35:1 on white,
 // under the 3:1 WCAG 1.4.11 floor for a focus indicator.
-function Stat({ label, value, tone = "stone", metric, active = false, onClick }) {
+function Stat({ label, value, sub, tone = "stone", metric, active = false, onClick }) {
   const color = tone === "green" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-stone-900";
   return (
     <button
@@ -502,6 +538,9 @@ function Stat({ label, value, tone = "stone", metric, active = false, onClick })
     >
       <p className="text-xs font-medium uppercase tracking-wide text-stone-700">{label}</p>
       <p className={`mt-1 font-serif text-xl font-semibold ${color}`}>{value}</p>
+      {/* Plain sans, not the mono chrome class: this line is translated content
+          ("12 người", "12 人"), which tracking-chrome mangles. */}
+      {sub ? <p className="font-sans text-xs text-stone-500">{sub}</p> : null}
     </button>
   );
 }
@@ -675,6 +714,33 @@ function GuestForm({ form, setForm, events, onSave, onClose, t, locale }) {
             />
           </div>
         ) : null}
+
+        {/* Attending heads. Sits after the plus-one pair because its floor
+            depends on them: ticking the box lifts min to 2, and handleSave and
+            saveGuest both raise a smaller number rather than store a row whose
+            count and "+1" chip disagree. Blank stays blank — an unanswered
+            invitation has no head count yet. */}
+        <div>
+          <label className="label" htmlFor="party-size">
+            {t("guests.partySize")}
+          </label>
+          <input
+            id="party-size"
+            className="input"
+            type="number"
+            inputMode="numeric"
+            min={minPartySize(form)}
+            max={40}
+            placeholder={t("guests.unset")}
+            value={form.party_size}
+            onChange={set("party_size")}
+          />
+          <p className="mt-1 text-xs text-stone-500">
+            {t("guests.partySizeHint", {
+              name: form.full_name.trim() || t("guests.partySizeThisGuest"),
+            })}
+          </p>
+        </div>
 
         {/* Invitations — the family-only Lễ Dạm Ngõ is already filtered out of `events`. */}
         <div>

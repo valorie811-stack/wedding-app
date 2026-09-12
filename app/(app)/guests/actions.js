@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { normalizePartySize, minPartySize } from "@/lib/guests";
 
 const isSeed = (id) => !id || String(id).startsWith("seed-");
 
@@ -12,8 +13,8 @@ function refresh() {
 }
 
 // Insert/update a guest and sync their per-event invitations in one call.
-// input: { id, full_name, side, plus_one, plus_one_name, dietary[], notes,
-//          country, category, invite_or_not,
+// input: { id, full_name, side, plus_one, plus_one_name, party_size, dietary[],
+//          notes, country, category, invite_or_not,
 //          invites: [{ event_id, status }] }
 export async function saveGuest(input) {
   const supabase = await createClient();
@@ -26,6 +27,15 @@ export async function saveGuest(input) {
     // Single normalisation point, server-side, so the invariant holds whatever
     // the client sends: no name is stored without the flag.
     plus_one_name: input.plus_one ? input.plus_one_name?.trim() || null : null,
+    // Attending heads for the row. Normalised here as well as in the form, so
+    // the invariant holds whatever the client sends: null when not recorded,
+    // and never below the floor the rest of the row implies — a guest with a
+    // plus one is at least two people, and a party_size of 1 beside a ticked
+    // plus_one would make headcount() and the "+1" chip contradict each other.
+    party_size: (() => {
+      const size = normalizePartySize(input.party_size);
+      return size == null ? null : Math.max(size, minPartySize(input));
+    })(),
     dietary: input.dietary || [],
     notes: input.notes || null,
     // Free-text columns with no DB constraint; the UI offers a fixed set of

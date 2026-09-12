@@ -11,24 +11,31 @@ import { saveTable, deleteTable, assignGuest, unassignGuest } from "@/app/(app)/
 import useOptimisticWrite, { newTempId } from "@/components/hooks/useOptimisticWrite";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import Icon from "@/components/ui/Icon";
+import { headcount, totalHeads } from "@/lib/guests";
 
-// A plus one has no guest record of its own, so it cannot be dragged or seated
-// separately — one chip covers the pair, and they always move together.
+// Nobody a guest brings has a record of their own, so they cannot be dragged or
+// seated separately — one chip covers the whole party, and it always moves as a
+// unit. The suffix says how many places that is: the recorded party size when
+// there is one, and the older "+1 <name>" for the rows that only ever had the
+// plus-one flag.
 function ChipLabel({ guest }) {
-  if (!guest.plus_one) return guest.full_name;
+  const heads = headcount(guest);
+  if (heads <= 1) return guest.full_name;
+  const suffix = guest.party_size ? `+${heads - 1}` : "+1";
   return (
     <>
       {guest.full_name}
       <span className="opacity-70">
-        {" +1"}
-        {guest.plus_one_name ? ` ${guest.plus_one_name}` : ""}
+        {` ${suffix}`}
+        {!guest.party_size && guest.plus_one_name ? ` ${guest.plus_one_name}` : ""}
       </span>
     </>
   );
 }
 
-// Seats, not chips: a guest bringing someone takes two places at the table.
-const seatsFor = (guest) => (guest?.plus_one ? 2 : 1);
+// Seats, not chips: a guest bringing anyone takes their whole party's places at
+// the table. headcount() is the one definition of how many that is.
+const seatsFor = (guest) => headcount(guest);
 
 export default function TablesView({ tables: initTables, assignments: initAsg, guests, preview }) {
   const { t, scope } = useApp();
@@ -171,8 +178,20 @@ export default function TablesView({ tables: initTables, assignments: initAsg, g
                 }}
                 className="rounded-2xl border border-dashed border-stone-200 bg-stone-50/50 p-3"
               >
+                {/* Chips and seats both, because they are no longer the same
+                    number and the tables beside this pool are measured in
+                    seats: four chips that need seven places would otherwise
+                    look like they fit a table with five left. The head count is
+                    dropped when it matches, so a pool of singles stays quiet.
+                    Plain sans on the tail — it is translated content. */}
                 <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
                   {t("tables.unassigned")} · {pool.length}
+                  {totalHeads(pool) !== pool.length && (
+                    <span className="font-sans normal-case tracking-normal text-stone-400">
+                      {" · "}
+                      {t("guests.heads", { n: totalHeads(pool) })}
+                    </span>
+                  )}
                 </p>
                 {pool.length === 0 ? (
                   <p className="px-1 py-4 text-center text-xs text-stone-400">{t("tables.poolEmpty")}</p>

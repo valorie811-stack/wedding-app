@@ -85,6 +85,7 @@ create table if not exists guests (
   country       text,                            -- Australia | Malaysia | Vietnam | Indonesia | Misc countries
   category      text,                            -- Family | Friends | Work | Other
   invite_or_not text,                            -- Invite | Not 100%
+  party_size    int,                             -- ATTENDING heads this row brings, THIS GUEST INCLUDED; null = not recorded
   created_at    timestamptz not null default now()
 );
 -- Migrate older installs: the create above is `if not exists`, so on a database
@@ -93,6 +94,23 @@ alter table guests add column if not exists plus_one_name text;
 alter table guests add column if not exists country       text;
 alter table guests add column if not exists category      text;
 alter table guests add column if not exists invite_or_not text;
+alter table guests add column if not exists party_size    int;
+
+-- party_size is the one new column with a database-level guard. The guest list
+-- is imported by hand-written SQL rather than through the app's form, so the
+-- UI's `min` is not in the path — a 0 would quietly claim an invited household
+-- is nobody, and an unbounded int lets a fat-fingered 600 through into the seat
+-- and catering counts. 40 clears the largest real household and still stops a
+-- typo. Guarded here instead of in the create above so older installs, where
+-- the create is a no-op, get the constraint too.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'guests_party_size_positive') then
+    alter table guests
+      add constraint guests_party_size_positive
+      check (party_size is null or party_size between 1 and 40);
+  end if;
+end $$;
 
 -- Per-event RSVP status (a guest can be invited to many events across weddings)
 create table if not exists guest_events (
