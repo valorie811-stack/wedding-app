@@ -1,0 +1,803 @@
+{
+  "checks": [
+    {
+      "name": "app_settings_singleton",
+      "table": "app_settings",
+      "definition": "CHECK ((id = 1))"
+    },
+    {
+      "name": "attire_items_role_check",
+      "table": "attire_items",
+      "definition": "CHECK ((role = ANY (ARRAY['bride'::text, 'groom'::text, 'family'::text, 'party'::text, 'guest'::text, 'other'::text])))"
+    },
+    {
+      "name": "attire_items_status_check",
+      "table": "attire_items",
+      "definition": "CHECK ((status = ANY (ARRAY['confirmed'::text, 'inspiration'::text])))"
+    },
+    {
+      "name": "events_event_type_check",
+      "table": "events",
+      "definition": "CHECK ((event_type = ANY (ARRAY['ceremony'::text, 'reception'::text, 'gathering'::text, 'other'::text])))"
+    },
+    {
+      "name": "guest_events_rsvp_status_check",
+      "table": "guest_events",
+      "definition": "CHECK ((rsvp_status = ANY (ARRAY['confirmed'::text, 'pending'::text, 'declined'::text])))"
+    },
+    {
+      "name": "guests_invite_or_not_check",
+      "table": "guests",
+      "definition": "CHECK (((invite_or_not IS NULL) OR (invite_or_not = ANY (ARRAY['Invite'::text, 'Not 100%'::text]))))"
+    },
+    {
+      "name": "guests_party_size_positive",
+      "table": "guests",
+      "definition": "CHECK (((party_size IS NULL) OR ((party_size >= 1) AND (party_size <= 40))))"
+    },
+    {
+      "name": "guests_side_check",
+      "table": "guests",
+      "definition": "CHECK ((side = ANY (ARRAY['bride'::text, 'groom'::text, 'both'::text, 'groom mom'::text, 'groom dad'::text])))"
+    },
+    {
+      "name": "tasks_recur_freq_check",
+      "table": "tasks",
+      "definition": "CHECK (((recur_freq IS NULL) OR (recur_freq = ANY (ARRAY['daily'::text, 'weekly'::text, 'monthly'::text]))))"
+    },
+    {
+      "name": "tasks_status_check",
+      "table": "tasks",
+      "definition": "CHECK ((status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'done'::text])))"
+    },
+    {
+      "name": "vendors_contract_status_check",
+      "table": "vendors",
+      "definition": "CHECK ((contract_status = ANY (ARRAY['enquiry'::text, 'quoted'::text, 'booked'::text, 'paid'::text, 'cancelled'::text])))"
+    }
+  ],
+  "columns": [
+    {
+      "type": "smallint",
+      "table": "app_settings",
+      "column": "id",
+      "default": "1",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "app_settings",
+      "column": "pin_hash",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "app_settings",
+      "column": "pin_salt",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "app_settings",
+      "column": "updated_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "attire_items",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "attire_items",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "attire_items",
+      "column": "image_url",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "attire_items",
+      "column": "notes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "attire_items",
+      "column": "role",
+      "default": "'bride'::text",
+      "nullable": "NO"
+    },
+    {
+      "type": "integer",
+      "table": "attire_items",
+      "column": "sort_order",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "attire_items",
+      "column": "status",
+      "default": "'inspiration'::text",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "attire_items",
+      "column": "title",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "attire_items",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "budget_categories",
+      "column": "category",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "budget_categories",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "budget_categories",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "numeric",
+      "table": "budget_categories",
+      "column": "planned",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "budget_categories",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "numeric",
+      "table": "budget_items",
+      "column": "actual",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "budget_items",
+      "column": "category",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "budget_items",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "budget_items",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "budget_items",
+      "column": "label",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "budget_items",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "events",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "dress_code",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "time without time zone",
+      "table": "events",
+      "column": "end_time",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "date",
+      "table": "events",
+      "column": "event_date",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "event_type",
+      "default": "'ceremony'::text",
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "events",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "boolean",
+      "table": "events",
+      "column": "is_halal",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "location",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "name_en",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "name_vi",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "name_zh",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "events",
+      "column": "notes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "integer",
+      "table": "events",
+      "column": "sort_order",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "type": "time without time zone",
+      "table": "events",
+      "column": "start_time",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "events",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "guest_events",
+      "column": "event_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "guest_events",
+      "column": "guest_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "guest_events",
+      "column": "rsvp_status",
+      "default": "'pending'::text",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "category",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "country",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "guests",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "ARRAY",
+      "table": "guests",
+      "column": "dietary",
+      "default": "'{}'::text[]",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "full_name",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "guests",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "invite_or_not",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "notes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "integer",
+      "table": "guests",
+      "column": "party_size",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "boolean",
+      "table": "guests",
+      "column": "plus_one",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "plus_one_name",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "guests",
+      "column": "side",
+      "default": "'both'::text",
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "moodboard_items",
+      "column": "board",
+      "default": "'General'::text",
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "moodboard_items",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "moodboard_items",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "moodboard_items",
+      "column": "image_url",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "moodboard_items",
+      "column": "notes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "integer",
+      "table": "moodboard_items",
+      "column": "sort_order",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "type": "ARRAY",
+      "table": "moodboard_items",
+      "column": "swatches",
+      "default": "'{}'::text[]",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "moodboard_items",
+      "column": "title",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "moodboard_items",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "seating_assignments",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "seating_assignments",
+      "column": "guest_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "seating_assignments",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "seating_assignments",
+      "column": "table_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "integer",
+      "table": "seating_tables",
+      "column": "capacity",
+      "default": "8",
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "seating_tables",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "seating_tables",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "seating_tables",
+      "column": "name",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "integer",
+      "table": "seating_tables",
+      "column": "sort_order",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "seating_tables",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "tasks",
+      "column": "assignee",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "tasks",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "date",
+      "table": "tasks",
+      "column": "due_date",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "tasks",
+      "column": "event_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "tasks",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "tasks",
+      "column": "recur_freq",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "date",
+      "table": "tasks",
+      "column": "recur_until",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "integer",
+      "table": "tasks",
+      "column": "remind_days_before",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "tasks",
+      "column": "status",
+      "default": "'todo'::text",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "tasks",
+      "column": "title",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "tasks",
+      "column": "vendor_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "tasks",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "category",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "contact_name",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "contract_status",
+      "default": "'enquiry'::text",
+      "nullable": "YES"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "vendors",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "numeric",
+      "table": "vendors",
+      "column": "deposit_paid",
+      "default": "0",
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "email",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "vendors",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "type": "boolean",
+      "table": "vendors",
+      "column": "is_halal_certified",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "name",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "notes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "text",
+      "table": "vendors",
+      "column": "phone",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "type": "numeric",
+      "table": "vendors",
+      "column": "total_cost",
+      "default": "0",
+      "nullable": "YES"
+    },
+    {
+      "type": "uuid",
+      "table": "vendors",
+      "column": "wedding_id",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "weddings",
+      "column": "accent",
+      "default": "'hp'::text",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "weddings",
+      "column": "city",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "weddings",
+      "column": "code",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "weddings",
+      "column": "country",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "weddings",
+      "column": "created_at",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "type": "text",
+      "table": "weddings",
+      "column": "currency",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "date",
+      "table": "weddings",
+      "column": "event_date",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "type": "uuid",
+      "table": "weddings",
+      "column": "id",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    }
+  ]
+}

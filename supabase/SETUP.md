@@ -56,10 +56,56 @@ first run. That PIN is shared by both of you and unlocks the app from then on.
 - *A module is empty but not in preview mode* → that is correct behaviour: the
   connection is live and that table simply has no rows yet. Add a record, or run
   `seed.sql` (step 2.3) for samples.
-- *Want to reset* → re-running `schema.sql` and `seed.sql` is safe (idempotent).
+- *Want to reset* → re-running `schema.sql` and `seed.sql` is safe. `schema.sql`
+  is idempotent *and* converging — see "Keeping the database and this repo in
+  step" below for what that does and does not fix.
+
+## Keeping the database and this repo in step
+
+`supabase/schema.sql` is the single source of truth. There is no migrations
+folder: it existed, held two files, and nothing ever ran it — the database's real
+history was made by hand in the SQL editor, which is exactly how the two drifted
+apart.
+
+**After pulling schema changes**, paste `supabase/schema.sql` into the SQL editor
+and run it. Its **RECONCILE** section re-asserts every check constraint and
+drift-prone default with `drop … if exists` + `add`, so re-running genuinely
+makes the database match this repo. The `create table if not exists` bodies
+above it only ever apply to a fresh install — on an existing database they are
+documentation, and cannot correct a default or constraint that has drifted.
+
+If a statement in RECONCILE errors, that is the point: existing rows and this
+file genuinely disagree, and one of them has to change. A silent skip is what
+let `guests.party_size` sit as `not null default 1` for eight days while this
+file said nullable, failing every save with a blank party size.
+
+**After changing the schema**, re-bless the snapshot and commit it with your
+change:
+
+```bash
+npm run db:check -- --update
+```
+
+**To verify nothing has drifted:**
+
+```bash
+npm run db:check
+```
+
+It compares the live schema against `supabase/schema.snapshot.json` and exits
+non-zero on any difference — a column added or dropped, a type, default or
+nullability changed, a check constraint added, removed or edited. Needs
+`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (from `.env.local`
+locally, repository secrets in CI). `.github/workflows/db-drift.yml` runs it on
+pushes touching `supabase/` and weekly on a schedule — the weekly run is the one
+that matters, since a change made in the dashboard fires no git event at all.
+
+Note what this does **not** do: it compares the live database against the last
+blessed snapshot, not against `schema.sql` itself. Re-blessing a bad state with
+`--update` still hides it, so read the snapshot diff in review.
 
 ## Phase 2–4 additions
-Re-run `supabase/schema.sql` (idempotent) after pulling new phases — it now also
+Re-run `supabase/schema.sql` after pulling new phases (see above) — it now also
 creates: `shares` + `share_otps` (sharing & email-OTP), `budget_categories`
 (category-level planned budgets), `seating_tables` + `seating_assignments`
 (table planner), and `moodboard_items` + `attire_items` (mood/attire). Then
