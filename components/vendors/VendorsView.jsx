@@ -39,7 +39,12 @@ const blank = {
   notes: "",
 };
 
-export default function VendorsView({ vendors: initial, categories: budgetCategories = [], preview }) {
+export default function VendorsView({
+  vendors: initial,
+  categories: budgetCategories = [],
+  preview,
+  rates,
+}) {
   const { t, scope } = useApp();
   const [vendors, setVendors] = useState(initial);
   const [form, setForm] = useState(null);
@@ -84,11 +89,11 @@ export default function VendorsView({ vendors: initial, categories: budgetCatego
     visible
       .filter((v) => v.contract_status !== "cancelled")
       .forEach((v) => {
-        cost += toAUD(v.total_cost, v.currency);
-        deposit += toAUD(v.deposit_paid, v.currency);
+        cost += toAUD(v.total_cost, v.currency, rates);
+        deposit += toAUD(v.deposit_paid, v.currency, rates);
       });
     return { count: visible.length, cost, deposit, balance: Math.max(0, cost - deposit) };
-  }, [visible]);
+  }, [visible, rates]);
 
   function openNew() {
     setForm({ ...blank, code: scope === "KK" ? "KK" : "HP" });

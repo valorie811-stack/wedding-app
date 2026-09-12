@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { hasOwnerSession, UNAUTHORIZED } from "@/lib/auth/guard";
 
 async function weddingIdByCode(supabase, code) {
   if (!code) return null;
@@ -12,6 +13,7 @@ async function weddingIdByCode(supabase, code) {
 const isSeed = (id) => !id || String(id).startsWith("seed-");
 
 export async function saveMoodItem(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   const row = {
@@ -40,6 +42,7 @@ export async function saveMoodItem(input) {
 }
 
 export async function deleteMoodItem(id) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(id)) return { ok: true, preview: false };

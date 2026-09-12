@@ -26,6 +26,7 @@ export default function BudgetView({
   items: initialItems = [],
   commitments = [],
   preview,
+  rates,
 }) {
   const { t, scope } = useApp();
   const [categories, setCategories] = useState(initialCats);
@@ -76,10 +77,10 @@ export default function BudgetView({
   const combined = useMemo(() => {
     let planned = 0;
     let actual = 0;
-    visibleCats.forEach((c) => (planned += toAUD(c.planned, c.currency)));
-    visibleItems.forEach((i) => (actual += toAUD(i.actual, i.currency)));
+    visibleCats.forEach((c) => (planned += toAUD(c.planned, c.currency, rates)));
+    visibleItems.forEach((i) => (actual += toAUD(i.actual, i.currency, rates)));
     return { planned, actual, usedPct: pct(actual, planned) };
-  }, [visibleCats, visibleItems]);
+  }, [visibleCats, visibleItems, rates]);
 
   const itemsFor = (code, category) =>
     visibleItems.filter((i) => i.code === code && i.category === category);

@@ -25,9 +25,9 @@ function fmtDate(date, locale) {
   }
 }
 
-export default function DashboardView({ source, preview }) {
+export default function DashboardView({ source, preview, rates }) {
   const { scope, t, locale } = useApp();
-  const d = useMemo(() => aggregate(source, scope), [source, scope]);
+  const d = useMemo(() => aggregate(source, scope, rates), [source, scope, rates]);
 
   const budgetPct = pct(d.budget.actualAUD, d.budget.plannedAUD);
   const scopeLabel =
