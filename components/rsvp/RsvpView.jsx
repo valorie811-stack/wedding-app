@@ -10,6 +10,7 @@ import { setInvite, removeInvite } from "@/app/(app)/guests/actions";
 import useOptimisticWrite from "@/components/hooks/useOptimisticWrite";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import Icon from "@/components/ui/Icon";
+import { totalHeads } from "@/lib/guests";
 
 const CYCLE = ["confirmed", "pending", "declined"];
 const SYMBOL = { confirmed: "✓", pending: "?", declined: "✕" };
@@ -44,16 +45,28 @@ export default function RsvpView({ guests: initial, events, preview }) {
 
   const statusOf = (g, eventId) => g.invites.find((i) => i.event_id === eventId)?.status || null;
 
-  // Per-event response summary.
+  // Per-event response summary. The three counts and the bar stay in invite
+  // units — one row of the matrix below is one reply, and a household that
+  // answers once should move the response rate once. But a reply is not a
+  // person, so confirmed is also carried as heads: that is the number the
+  // caterer and the table planner are given.
   const summary = useMemo(() => {
     return cols.map((ev) => {
       const counts = { confirmed: 0, pending: 0, declined: 0 };
+      const confirmedGuests = [];
       guests.forEach((g) => {
         const s = statusOf(g, ev.id);
         if (s && counts[s] != null) counts[s] += 1;
+        if (s === "confirmed") confirmedGuests.push(g);
       });
       const invited = counts.confirmed + counts.pending + counts.declined;
-      return { ev, ...counts, invited, rate: pct(counts.confirmed + counts.declined, invited) };
+      return {
+        ev,
+        ...counts,
+        confirmedHeads: totalHeads(confirmedGuests),
+        invited,
+        rate: pct(counts.confirmed + counts.declined, invited),
+      };
     });
   }, [cols, guests]);
 
@@ -117,7 +130,7 @@ export default function RsvpView({ guests: initial, events, preview }) {
 
       {/* Per-event summary */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {summary.map(({ ev, confirmed, pending, declined, invited, rate }) => (
+        {summary.map(({ ev, confirmed, pending, declined, confirmedHeads, invited, rate }) => (
           <Card key={ev.id}>
             <CardBody>
               <div className="flex items-start justify-between gap-2">
@@ -135,6 +148,11 @@ export default function RsvpView({ guests: initial, events, preview }) {
                 <Mini label={t("rsvp.declined")} value={declined} tone="text-red-700" />
                 <Mini label={t("rsvp.responseRate")} value={`${rate}%`} tone="text-stone-700" />
               </div>
+              {/* Heads, not replies — the one number on this card that is a
+                  count of people. Plain sans: it is translated content. */}
+              <p className="mt-2 text-center font-sans text-xs text-stone-500">
+                {t("rsvp.confirmedHeads", { n: confirmedHeads })}
+              </p>
             </CardBody>
           </Card>
         ))}

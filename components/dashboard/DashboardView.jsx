@@ -54,8 +54,13 @@ export default function DashboardView({ source, preview }) {
           icon="✅"
           accent="kk"
           label={t("dashboard.guestsConfirmed")}
+          // The card counts replies; the line under it says how many people
+          // those replies are, which is the number catering runs on.
           value={d.rsvp.confirmed}
-          sub={t("dashboard.ofInvited", { total: d.rsvp.total })}
+          sub={t("dashboard.confirmedHeadsSub", {
+            n: d.rsvp.confirmedHeads,
+            total: d.rsvp.total,
+          })}
         />
         <StatCard
           icon="💰"
