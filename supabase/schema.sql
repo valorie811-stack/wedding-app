@@ -77,7 +77,11 @@ create table if not exists events (
 create table if not exists guests (
   id            uuid primary key default gen_random_uuid(),
   full_name     text not null,
-  side          text default 'both' check (side in ('bride','groom','both')),
+  -- 'groom mom' / 'groom dad' are the groom's parents' own guest lists, which
+  -- they invite and chase separately. Between them they are 100 of the 223
+  -- rows, so they are not an edge case.
+  side          text default 'both'
+                check (side in ('bride','groom','both','groom mom','groom dad')),
   plus_one      boolean not null default false,
   plus_one_name text,                            -- null unless plus_one is true
   dietary       text[] not null default '{}',    -- e.g. {halal,vegetarian}
@@ -301,11 +305,12 @@ create table if not exists attire_items (
 alter table guests drop constraint if exists guests_party_size_chk;
 
 -- guests ---------------------------------------------------------------------
--- guests_side_check is deliberately NOT reconciled here yet. It is the one
--- constraint where this file and the data genuinely disagree: the database
--- allows 'groom mom' and 'groom dad' and 100 rows use them, while the create
--- above allows only bride/groom/both. Asserting the narrow set would fail, as
--- it should. Resolving it means widening the app too, so it is its own change.
+-- Value order here follows the existing constraint rather than the order the
+-- app lists them in, so re-running this produces a byte-identical definition
+-- and no spurious snapshot diff.
+alter table guests drop constraint if exists guests_side_check;
+alter table guests add  constraint guests_side_check
+  check (side in ('bride','groom','both','groom mom','groom dad'));
 
 -- The guest list is imported by hand-written SQL rather than through the app's
 -- form, so the UI's `min` is not in the path — a 0 would quietly claim an

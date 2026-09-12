@@ -16,7 +16,11 @@ import Icon from "@/components/ui/Icon";
 import { headcount, totalHeads, minPartySize, normalizePartySize } from "@/lib/guests";
 
 const DIET_OPTIONS = ["halal", "vegetarian", "vegan", "gluten-free"];
-const SIDES = ["bride", "groom", "both"];
+// The groom's parents keep their own guest lists and chase them separately, so
+// 'groom mom' and 'groom dad' are sides in their own right — together 100 of the
+// 223 live rows, more than 'both' and 'bride' combined. Listed next to 'groom'
+// rather than appended, so the groom's three entries read as a group.
+const SIDES = ["bride", "groom", "groom mom", "groom dad", "both"];
 const STATUSES = ["confirmed", "pending", "declined"];
 const STATUS_TONE = { confirmed: "green", pending: "amber", declined: "red" };
 const COUNTRIES = ["Australia", "Malaysia", "Vietnam", "Indonesia", "Misc countries"];
