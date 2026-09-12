@@ -9,7 +9,7 @@ export default function OfflinePage() {
         </div>
         <h1 className="font-serif text-lg font-semibold text-stone-900">You&apos;re offline</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Reconnect to load the latest. Pages you&apos;ve already opened may still work.
+          Your planner needs a connection — pages are never stored on this device.
         </p>
       </div>
     </div>
