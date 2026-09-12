@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { hasOwnerSession, UNAUTHORIZED } from "@/lib/auth/guard";
 
 async function weddingIdByCode(supabase, code) {
   if (!code) return null;
@@ -11,15 +12,24 @@ async function weddingIdByCode(supabase, code) {
 
 const isSeed = (id) => !id || String(id).startsWith("seed-");
 
+// TablesView groups every table under one wedding or the other, so a table with
+// no wedding_id renders in neither — it is saved, invisible, and its seats
+// count toward nothing. Same failure the budget and vendor actions already
+// guard against; seating_tables simply never got the NOT NULL migration.
+const NO_WEDDING = "Could not resolve which wedding this table belongs to. Reload and try again.";
+
 function refresh() {
   revalidatePath("/tables");
 }
 
 export async function saveTable(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
+  const weddingId = await weddingIdByCode(supabase, input.code);
+  if (!weddingId) return { ok: false, error: NO_WEDDING };
   const row = {
-    wedding_id: await weddingIdByCode(supabase, input.code),
+    wedding_id: weddingId,
     name: input.name,
     capacity: Number(input.capacity) || 8,
     sort_order: Number(input.sort_order) || 0,
@@ -42,6 +52,7 @@ export async function saveTable(input) {
 }
 
 export async function deleteTable(id) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(id)) return { ok: true, preview: false };
@@ -54,6 +65,7 @@ export async function deleteTable(id) {
 // Assign a guest to a table. Enforces one table per wedding by clearing any
 // existing assignment for this guest among the table's wedding first.
 export async function assignGuest(tableId, guestId) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(tableId) || isSeed(guestId)) return { ok: true, preview: false };
@@ -82,6 +94,7 @@ export async function assignGuest(tableId, guestId) {
 }
 
 export async function unassignGuest(tableId, guestId) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(tableId) || isSeed(guestId)) return { ok: true, preview: false };

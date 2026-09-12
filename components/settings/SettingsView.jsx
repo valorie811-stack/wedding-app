@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useApp } from "@/context/AppContext";
+import { translateOr } from "@/lib/i18n";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { changePinAction } from "@/app/(app)/settings/actions";
@@ -13,7 +14,7 @@ export default function SettingsView({ canPersist = true }) {
   const [state, formAction, pending] = useActionState(changePinAction, null);
 
   const errorText = state?.error
-    ? t(`login.err.${state.error}`) || t("login.err.invalid")
+    ? translateOr(t, `login.err.${state.error}`, "login.err.unknown")
     : "";
 
   return (

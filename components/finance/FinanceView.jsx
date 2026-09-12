@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { useApp } from "@/context/AppContext";
 import { inScope } from "@/lib/dashboard";
-import { formatAUD, formatMoney, pct } from "@/lib/format";
+import { formatAUD, formatMoney, pct, toAUD as toAUDWith } from "@/lib/format";
 import { WEDDINGS, WEDDING_LIST } from "@/lib/theme";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -26,7 +26,9 @@ const ACTUAL_COLOR = tokens.kk[600];
 
 export default function FinanceView({ categories, items, rates, fxLive, preview }) {
   const { t, scope, locale } = useApp();
-  const toAUD = (amount, currency) => (Number(amount) || 0) * (rates?.[currency] ?? 0);
+  // The shared helper, bound to this page's rates — the local copy of the same
+  // formula is what let the two implementations drift apart in the first place.
+  const toAUD = (amount, currency) => toAUDWith(amount, currency, rates);
 
   const visibleCats = useMemo(() => categories.filter((c) => inScope(c.code, scope)), [categories, scope]);
   const visibleItems = useMemo(() => items.filter((i) => inScope(i.code, scope)), [items, scope]);
@@ -43,8 +45,13 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
           wedding: w,
           plannedLocal,
           actualLocal,
-          planned: Math.round(toAUD(plannedLocal, w.currency)),
-          actual: Math.round(toAUD(actualLocal, w.currency)),
+          // Unrounded. The combined totals below sum these, and rounding here
+          // first made the Finance headline disagree with the identical figure
+          // on Dashboard and Budget by the accumulated fractions — the same
+          // "two pages, one number" problem as the exchange-rate split, just
+          // smaller. The chart rounds its own copy; the money does not.
+          planned: toAUD(plannedLocal, w.currency),
+          actual: toAUD(actualLocal, w.currency),
         };
       }),
     [visibleCats, visibleItems, scope, rates] // eslint-disable-line react-hooks/exhaustive-deps
@@ -72,8 +79,9 @@ export default function FinanceView({ categories, items, rates, fxLive, preview 
     () =>
       perWedding.map((p) => ({
         name: `${p.wedding.flag} ${p.wedding.city[locale] || p.wedding.city.en}`,
-        planned: p.planned,
-        actual: p.actual,
+        // Bar heights, not money: integers are all recharts needs here.
+        planned: Math.round(p.planned),
+        actual: Math.round(p.actual),
       })),
     [perWedding, locale]
   );

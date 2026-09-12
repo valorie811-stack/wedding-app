@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePartySize, minPartySize } from "@/lib/guests";
+import { hasOwnerSession, UNAUTHORIZED } from "@/lib/auth/guard";
 
 const isSeed = (id) => !id || String(id).startsWith("seed-");
 
@@ -17,6 +18,7 @@ function refresh() {
 //          notes, country, category, invite_or_not,
 //          invites: [{ event_id, status }] }
 export async function saveGuest(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
 
@@ -82,6 +84,7 @@ export async function saveGuest(input) {
 }
 
 export async function deleteGuest(id) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(id)) return { ok: true, preview: false };
@@ -93,6 +96,7 @@ export async function deleteGuest(id) {
 
 // Set or update a single invitation (used by the RSVP matrix for fast editing).
 export async function setInvite(guestId, eventId, status) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(guestId) || isSeed(eventId)) return { ok: true, preview: false };
@@ -105,6 +109,7 @@ export async function setInvite(guestId, eventId, status) {
 }
 
 export async function removeInvite(guestId, eventId) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(guestId) || isSeed(eventId)) return { ok: true, preview: false };
