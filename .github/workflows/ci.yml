@@ -1,0 +1,48 @@
+# Lint, theme audit and build on every PR.
+#
+# The repo had branch-policy and develop-sync guarding *where* code lands, but
+# nothing checking whether it works before it gets there. A security-headers
+# change that breaks the build, a theme token that drifts from Icon.jsx, an
+# unused import — all of it reached main and was found by hand.
+#
+# Runs the same three commands a person would: `npm run lint`, `npm run
+# audit:theme` (palette contrast + Icon.jsx byte-for-byte reproducibility), and
+# a production `next build`. No secrets and no deploy — the build works without
+# Supabase, which is the preview-mode path the app already supports.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Supersede in-flight runs for the same ref; a stale result on an outdated
+  # commit is noise at best and a false green at worst.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: lint + audit + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ci, not install: fails loudly if package-lock.json and package.json
+      # have drifted, rather than silently resolving something else.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run audit:theme
+
+      - run: npm run build

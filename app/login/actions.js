@@ -1,8 +1,14 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { setupPin, verifyPin } from "@/lib/auth/pin";
+import {
+  setupPin,
+  verifyPin,
+  pinLockoutRemaining,
+  recordPinFailure,
+  clearPinFailures,
+} from "@/lib/auth/pin";
 import {
   signSession,
   getSessionSecret,
@@ -22,11 +28,30 @@ async function startSession() {
   });
 }
 
+// Who is knocking, for throttling purposes. On Vercel the leftmost
+// X-Forwarded-For entry is set by the platform; elsewhere the header is
+// client-controlled, which is why the lockout map is size-bounded.
+async function clientKey() {
+  const h = await headers();
+  const fwd = h.get("x-forwarded-for") || "";
+  return fwd.split(",")[0].trim() || h.get("x-real-ip") || "unknown";
+}
+
 // Unlock with an existing PIN.
 export async function verifyPinAction(_prev, formData) {
+  const key = await clientKey();
+  // Check before verifying, so a locked-out caller cannot keep probing.
+  if (pinLockoutRemaining(key) > 0) return { error: "locked" };
+
   const pin = formData.get("pin");
   const ok = await verifyPin(pin);
-  if (!ok) return { error: "invalid" };
+  if (!ok) {
+    recordPinFailure(key);
+    // Re-read: this failure may have been the one that tripped the lockout,
+    // and saying so now is more use than another "incorrect PIN".
+    return { error: pinLockoutRemaining(key) > 0 ? "locked" : "invalid" };
+  }
+  clearPinFailures(key);
   await startSession();
   redirect("/dashboard");
 }

@@ -15,11 +15,18 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import ExportButton from "@/components/share/ExportButton";
 import Icon from "@/components/ui/Icon";
 
+// Rows derived from a vendor deposit (see vendorPaymentItems in lib/data.js).
+// They are a projection of the vendors table, not budget_items rows, so the
+// two category writes below — both of which only touch budget_items on the
+// server — have to leave them exactly where they are.
+const isVendorRow = (item) => Boolean(item.vendorId);
+
 export default function BudgetView({
   categories: initialCats = [],
   items: initialItems = [],
   commitments = [],
   preview,
+  rates,
 }) {
   const { t, scope } = useApp();
   const [categories, setCategories] = useState(initialCats);
@@ -70,10 +77,10 @@ export default function BudgetView({
   const combined = useMemo(() => {
     let planned = 0;
     let actual = 0;
-    visibleCats.forEach((c) => (planned += toAUD(c.planned, c.currency)));
-    visibleItems.forEach((i) => (actual += toAUD(i.actual, i.currency)));
+    visibleCats.forEach((c) => (planned += toAUD(c.planned, c.currency, rates)));
+    visibleItems.forEach((i) => (actual += toAUD(i.actual, i.currency, rates)));
     return { planned, actual, usedPct: pct(actual, planned) };
-  }, [visibleCats, visibleItems]);
+  }, [visibleCats, visibleItems, rates]);
 
   const itemsFor = (code, category) =>
     visibleItems.filter((i) => i.code === code && i.category === category);
@@ -95,20 +102,42 @@ export default function BudgetView({
     const tempId = newTempId();
     setCatForm(null);
 
+    // Expense items name their category by string, so saveCategory re-points
+    // this category's items at the new name. Without mirroring that here the
+    // optimistic state keeps them under the old name: the renamed category
+    // reads as empty and its spend reappears in the orphan block, until a
+    // reload quietly puts it all back. Captured as ids rather than re-matched
+    // on the name, so a revert cannot sweep up items that already sat under it.
+    const renamedFrom =
+      editingId && previousRow && previousRow.category !== name ? previousRow.category : null;
+    const movedIds = renamedFrom
+      ? new Set(
+          items
+            .filter((i) => !isVendorRow(i) && i.code === payload.code && i.category === renamedFrom)
+            .map((i) => i.id)
+        )
+      : null;
+    const recategorize = (to) => () =>
+      setItems((prev) => prev.map((i) => (movedIds.has(i.id) ? { ...i, category: to } : i)));
+
     run({
-      apply: () =>
+      apply: () => {
         setCategories((prev) =>
           editingId
             ? prev.map((c) => (c.id === editingId ? { ...c, ...payload } : c))
             : [...prev, { ...payload, id: tempId }]
-        ),
+        );
+        if (movedIds?.size) recategorize(name)();
+      },
       action: () => saveCategory(payload),
-      revert: () =>
+      revert: () => {
         setCategories((prev) =>
           editingId
             ? prev.map((c) => (c.id === editingId && previousRow ? previousRow : c))
             : prev.filter((c) => c.id !== tempId)
-        ),
+        );
+        if (movedIds?.size) recategorize(renamedFrom)();
+      },
       adopt: (id) => setCategories((prev) => prev.map((c) => (c.id === tempId ? { ...c, id } : c))),
       message: t("common.saveFailed"),
     });
@@ -118,11 +147,16 @@ export default function BudgetView({
     // The server drops the category's expense items too, so both lists have to
     // come back together if the delete fails.
     const catIndex = categories.findIndex((x) => x.id === c.id);
-    const removedItems = items.filter((i) => i.code === c.code && i.category === c.category);
+    // deleteCategory drops the category's budget_items rows only. A vendor
+    // deposit filed under the same name lives in the vendors table and survives
+    // the delete — removing it here too made that spend vanish from the combined
+    // AUD rollup until the next reload brought it back as an orphan.
+    const inCategory = (i) => !isVendorRow(i) && i.code === c.code && i.category === c.category;
+    const removedItems = items.filter(inCategory);
     run({
       apply: () => {
         setCategories((prev) => prev.filter((x) => x.id !== c.id));
-        setItems((prev) => prev.filter((i) => !(i.code === c.code && i.category === c.category)));
+        setItems((prev) => prev.filter((i) => !inCategory(i)));
       },
       action: () => deleteCategory({ id: c.id, code: c.code, category: c.category }),
       revert: () => {
@@ -298,7 +332,7 @@ function CommitmentLine({ commitment, planned, currency, t }) {
   const over = commitment.committed > planned;
   return (
     <p className={`mt-0.5 text-xs ${over ? "text-amber-700" : "text-stone-400"}`}>
-      {over && <span aria-hidden>⚠ </span>}
+      {over && <Icon name="warning" size={12} className="mr-1 inline-block align-text-bottom" />}
       {t("budget.committed")}: {formatMoney(commitment.committed, currency)}
       {commitment.outstanding > 0 && (
         <span className="text-stone-400">

@@ -77,7 +77,11 @@ create table if not exists events (
 create table if not exists guests (
   id            uuid primary key default gen_random_uuid(),
   full_name     text not null,
-  side          text default 'both' check (side in ('bride','groom','both')),
+  -- 'groom mom' / 'groom dad' are the groom's parents' own guest lists, which
+  -- they invite and chase separately. Between them they are 100 of the 223
+  -- rows, so they are not an edge case.
+  side          text default 'both'
+                check (side in ('bride','groom','both','groom mom','groom dad')),
   plus_one      boolean not null default false,
   plus_one_name text,                            -- null unless plus_one is true
   dietary       text[] not null default '{}',    -- e.g. {halal,vegetarian}
@@ -85,6 +89,7 @@ create table if not exists guests (
   country       text,                            -- Australia | Malaysia | Vietnam | Indonesia | Misc countries
   category      text,                            -- Family | Friends | Work | Other
   invite_or_not text,                            -- Invite | Not 100%
+  party_size    int,                             -- ATTENDING heads this row brings, THIS GUEST INCLUDED; null = not recorded
   created_at    timestamptz not null default now()
 );
 -- Migrate older installs: the create above is `if not exists`, so on a database
@@ -93,6 +98,10 @@ alter table guests add column if not exists plus_one_name text;
 alter table guests add column if not exists country       text;
 alter table guests add column if not exists category      text;
 alter table guests add column if not exists invite_or_not text;
+alter table guests add column if not exists party_size    int;
+
+-- Constraints and defaults for these columns live in the RECONCILE section near
+-- the end of this file, not here. See the note there for why.
 
 -- Per-event RSVP status (a guest can be invited to many events across weddings)
 create table if not exists guest_events (
@@ -261,6 +270,169 @@ create table if not exists attire_items (
   sort_order  int not null default 0,
   created_at  timestamptz not null default now()
 );
+
+-- ----------------------------------------------------------------------------
+-- RECONCILE — the part of this file that can actually CHANGE an existing database
+--
+-- Everything above is additive. `create table if not exists` is a no-op the
+-- moment the table exists, which means every inline `check (...)`, `default`
+-- and `not null` in those bodies only ever applies to a FRESH install. On a
+-- database that already exists they are documentation, nothing more.
+--
+-- That is not a quirk, it is the bug that bit us. guests.party_size was created
+-- by hand as `not null default 1` while this file said nullable, and re-running
+-- schema.sql — the documented fix for "pull new changes" — could never correct
+-- it, because the column already existed. Every save with a blank party size
+-- failed until it was found. The same is true of any default or check that
+-- drifts.
+--
+-- So: anything whose value matters is re-asserted HERE, with `drop ... if
+-- exists` followed by `add`, which is both idempotent and correcting. Re-running
+-- this file now genuinely means "make the database match this repo".
+--
+-- Two consequences worth knowing:
+--   * Adding a constraint FAILS LOUDLY if existing rows violate it. That is the
+--     intended behaviour — a silent skip is what let the drift accumulate. If a
+--     statement here errors, the data and this file genuinely disagree, and one
+--     of them has to change.
+--   * A constraint you rename is not dropped by this section. Drop the old name
+--     explicitly, the way guests_party_size_chk is dropped below.
+-- ----------------------------------------------------------------------------
+
+-- Dropped by name: the original hand-applied constraint for this column. Its
+-- replacement below adds the upper bound, so leaving both would mean two
+-- overlapping checks saying almost the same thing.
+alter table guests drop constraint if exists guests_party_size_chk;
+
+-- guests ---------------------------------------------------------------------
+-- Value order here follows the existing constraint rather than the order the
+-- app lists them in, so re-running this produces a byte-identical definition
+-- and no spurious snapshot diff.
+alter table guests drop constraint if exists guests_side_check;
+alter table guests add  constraint guests_side_check
+  check (side in ('bride','groom','both','groom mom','groom dad'));
+
+-- The guest list is imported by hand-written SQL rather than through the app's
+-- form, so the UI's `min` is not in the path — a 0 would quietly claim an
+-- invited household is nobody, and an unbounded int lets a fat-fingered 600
+-- through into the seat and catering counts. 40 clears the largest real
+-- household (9) and still stops a typo.
+alter table guests drop constraint if exists guests_party_size_positive;
+alter table guests add  constraint guests_party_size_positive
+  check (party_size is null or party_size between 1 and 40);
+
+alter table guests drop constraint if exists guests_invite_or_not_check;
+alter table guests add  constraint guests_invite_or_not_check
+  check (invite_or_not is null or invite_or_not in ('Invite','Not 100%'));
+
+-- party_size is nullable with no default on purpose. Null means "not recorded"
+-- and falls back to the plus-one rule; 1 asserts a party of one. A default of 1
+-- makes those two states indistinguishable, and NOT NULL additionally rejects
+-- the explicit null the guest form sends for a blank field.
+alter table guests alter column party_size drop not null;
+alter table guests alter column party_size drop default;
+
+-- Both of these carried a default applied by hand and never recorded here.
+-- `invite_or_not` had `default 'NULL'` — the four-character STRING, which its
+-- own check constraint rejects, so any insert omitting the column failed.
+-- `category` had `default 'Friends'`, which quietly invents a relationship for
+-- a guest nobody has classified yet.
+alter table guests alter column invite_or_not drop default;
+alter table guests alter column category      drop default;
+
+-- events ---------------------------------------------------------------------
+alter table events drop constraint if exists events_event_type_check;
+alter table events add  constraint events_event_type_check
+  check (event_type in ('ceremony','reception','gathering','other'));
+
+-- guest_events ---------------------------------------------------------------
+alter table guest_events drop constraint if exists guest_events_rsvp_status_check;
+alter table guest_events add  constraint guest_events_rsvp_status_check
+  check (rsvp_status in ('confirmed','pending','declined'));
+
+-- vendors --------------------------------------------------------------------
+alter table vendors drop constraint if exists vendors_contract_status_check;
+alter table vendors add  constraint vendors_contract_status_check
+  check (contract_status in ('enquiry','quoted','booked','paid','cancelled'));
+
+-- tasks ----------------------------------------------------------------------
+alter table tasks drop constraint if exists tasks_status_check;
+alter table tasks add  constraint tasks_status_check
+  check (status in ('todo','in_progress','done'));
+
+alter table tasks drop constraint if exists tasks_recur_freq_check;
+alter table tasks add  constraint tasks_recur_freq_check
+  check (recur_freq is null or recur_freq in ('daily','weekly','monthly'));
+
+-- attire_items ---------------------------------------------------------------
+alter table attire_items drop constraint if exists attire_items_role_check;
+alter table attire_items add  constraint attire_items_role_check
+  check (role in ('bride','groom','family','party','guest','other'));
+
+alter table attire_items drop constraint if exists attire_items_status_check;
+alter table attire_items add  constraint attire_items_status_check
+  check (status in ('confirmed','inspiration'));
+
+-- ----------------------------------------------------------------------------
+-- Drift detection support
+--
+-- `npm run db:check` compares the live database against
+-- supabase/schema.snapshot.json and fails when they disagree. It reaches the
+-- catalogs through this function because PostgREST does not expose
+-- information_schema — there is no other way to introspect with only the
+-- service-role key, and adding a direct Postgres connection would mean shipping
+-- the database password to CI as well.
+--
+-- SECURITY DEFINER so it can read the catalogs, then execute is revoked from
+-- everyone and granted back to service_role alone: the anon key must not be
+-- able to enumerate the schema.
+-- ----------------------------------------------------------------------------
+create or replace function public.schema_snapshot()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $fn$
+  select jsonb_build_object(
+    'columns', coalesce((
+      -- Ordered by name rather than ordinal position: a column added in the
+      -- middle of a table should read as one added line in the snapshot diff,
+      -- not reshuffle every line below it.
+      select jsonb_agg(
+               jsonb_build_object(
+                 'table',    c.table_name,
+                 'column',   c.column_name,
+                 'type',     c.data_type,
+                 'nullable', c.is_nullable,
+                 'default',  c.column_default
+               ) order by c.table_name, c.column_name)
+      from information_schema.columns c
+      where c.table_schema = 'public'
+    ), '[]'::jsonb),
+    'checks', coalesce((
+      select jsonb_agg(
+               jsonb_build_object(
+                 'table',      con.conrelid::regclass::text,
+                 'name',       con.conname,
+                 'definition', pg_get_constraintdef(con.oid)
+               ) order by con.conrelid::regclass::text, con.conname)
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      where con.connamespace = 'public'::regnamespace
+        and con.contype = 'c'
+        and rel.relkind = 'r'
+    ), '[]'::jsonb)
+  );
+$fn$;
+
+revoke all on function public.schema_snapshot() from public;
+revoke all on function public.schema_snapshot() from anon, authenticated;
+grant execute on function public.schema_snapshot() to service_role;
+
+-- PostgREST caches which functions are callable; without this the first
+-- db:check after a fresh install gets "function not found".
+notify pgrst, 'reload schema';
 
 -- ----------------------------------------------------------------------------
 -- Row Level Security

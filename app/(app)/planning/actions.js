@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { hasOwnerSession, UNAUTHORIZED } from "@/lib/auth/guard";
 
 async function weddingIdByCode(supabase, code) {
   if (!code) return null;
@@ -12,6 +13,7 @@ async function weddingIdByCode(supabase, code) {
 const isSeed = (id) => !id || String(id).startsWith("seed-");
 
 export async function saveTask(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
 
@@ -55,6 +57,7 @@ export async function saveTask(input) {
 
 // Fast path for drag-and-drop: only the status changes.
 export async function updateTaskStatus(id, status) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(id)) return { ok: true, preview: false };
@@ -67,6 +70,7 @@ export async function updateTaskStatus(id, status) {
 }
 
 export async function deleteTask(id) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(id)) return { ok: true, preview: false };

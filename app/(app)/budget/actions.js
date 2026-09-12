@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { hasOwnerSession, UNAUTHORIZED } from "@/lib/auth/guard";
 
 async function weddingIdByCode(supabase, code) {
   if (!code) return null;
@@ -24,6 +25,7 @@ function refresh() {
 
 // --- Category planned budgets (one planned amount per wedding + category) ----
 export async function saveCategory(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   const weddingId = await weddingIdByCode(supabase, input.code);
@@ -66,6 +68,7 @@ export async function saveCategory(input) {
 
 // Removes a category and all of its expense items (matched by name + wedding).
 export async function deleteCategory(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   const weddingId = await weddingIdByCode(supabase, input.code);
@@ -88,6 +91,7 @@ export async function deleteCategory(input) {
 
 // --- Actual expense items (many per category) -------------------------------
 export async function saveItem(input) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   const weddingId = await weddingIdByCode(supabase, input.code);
@@ -116,6 +120,7 @@ export async function saveItem(input) {
 }
 
 export async function deleteItem(id) {
+  if (!(await hasOwnerSession())) return UNAUTHORIZED;
   const supabase = await createClient();
   if (!supabase) return { ok: true, preview: true };
   if (isSeed(id)) return { ok: true, preview: false };

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import Image from "next/image";
 import { useApp } from "@/context/AppContext";
-import { LOCALES } from "@/lib/i18n";
+import { LOCALES, translateOr } from "@/lib/i18n";
 import Button from "@/components/ui/Button";
 import { verifyPinAction, setupPinAction } from "@/app/login/actions";
 
@@ -16,7 +16,7 @@ export default function PinForm({ mode = "verify", canPersist = true }) {
   const [state, formAction, pending] = useActionState(action, null);
 
   const errorText = state?.error
-    ? t(`login.err.${state.error}`) || t("login.err.invalid")
+    ? translateOr(t, `login.err.${state.error}`, "login.err.unknown")
     : "";
 
   return (

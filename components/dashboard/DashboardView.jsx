@@ -25,9 +25,9 @@ function fmtDate(date, locale) {
   }
 }
 
-export default function DashboardView({ source, preview }) {
+export default function DashboardView({ source, preview, rates }) {
   const { scope, t, locale } = useApp();
-  const d = useMemo(() => aggregate(source, scope), [source, scope]);
+  const d = useMemo(() => aggregate(source, scope, rates), [source, scope, rates]);
 
   const budgetPct = pct(d.budget.actualAUD, d.budget.plannedAUD);
   const scopeLabel =
@@ -54,8 +54,13 @@ export default function DashboardView({ source, preview }) {
           icon="✅"
           accent="kk"
           label={t("dashboard.guestsConfirmed")}
+          // The card counts replies; the line under it says how many people
+          // those replies are, which is the number catering runs on.
           value={d.rsvp.confirmed}
-          sub={t("dashboard.ofInvited", { total: d.rsvp.total })}
+          sub={t("dashboard.confirmedHeadsSub", {
+            n: d.rsvp.confirmedHeads,
+            total: d.rsvp.total,
+          })}
         />
         <StatCard
           icon="💰"

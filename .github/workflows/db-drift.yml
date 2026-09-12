@@ -1,0 +1,115 @@
+# Catches the database and the repo drifting apart.
+#
+# They already did, silently, for eight days. guests.party_size was added by
+# hand in the SQL editor as `not null default 1` while supabase/schema.sql
+# declared it nullable. Nothing compared the two, so nothing complained — and
+# because `create table if not exists` is a no-op on an existing database,
+# re-running schema.sql (the documented way to pick up changes) could never have
+# corrected it. It surfaced only when someone read the column definition by
+# chance, by which point every guest saved with a blank party size was failing.
+# Four other columns had drifted the same way.
+#
+# This job runs `npm run db:check`, which compares the live schema against the
+# committed supabase/schema.snapshot.json. A legitimate schema change shows up
+# as a reviewable diff in the PR that makes it; an unrecorded one shows up here.
+name: DB drift
+
+on:
+  push:
+    branches: [develop, main]
+    # The snapshot and the schema travel together, and the script itself can
+    # change what counts as drift.
+    paths:
+      - "supabase/**"
+      - "scripts/db-check.mjs"
+      - ".github/workflows/db-drift.yml"
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "supabase/**"
+      - "scripts/db-check.mjs"
+      - ".github/workflows/db-drift.yml"
+  schedule:
+    # The important one. Drift does not arrive with a commit — it arrives when
+    # someone runs SQL in the dashboard, which fires no event at all. Only a
+    # scheduled run catches that.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    name: db-drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Secrets are unavailable to pull requests from forks, and the repo may
+      # simply not have them set yet. Announce that loudly rather than letting
+      # the job report a green check it never earned — a check that passes
+      # without running is worse than no check at all.
+      - name: Check credentials are available
+        id: creds
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SERVICE_ROLE:-}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=DB drift check skipped::NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not set as repository secrets, so the schema was not verified."
+            {
+              echo "### DB drift check skipped"
+              echo
+              echo "\`NEXT_PUBLIC_SUPABASE_URL\` and \`SUPABASE_SERVICE_ROLE_KEY\` are not"
+              echo "available as repository secrets (or this is a fork PR, where secrets"
+              echo "are withheld by design)."
+              echo
+              echo "**The schema was not verified.** Add both under"
+              echo "Settings → Secrets and variables → Actions to turn this on."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compare live schema against the committed snapshot
+        if: steps.creds.outputs.available == 'true'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if npm run --silent db:check 2>&1 | tee drift.log; then
+            {
+              echo "### Database matches the repo"
+              echo
+              echo '```'
+              cat drift.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error title=Schema drift::The live database no longer matches supabase/schema.snapshot.json."
+            {
+              echo "### Schema drift detected"
+              echo
+              echo "The live database and \`supabase/schema.snapshot.json\` disagree:"
+              echo
+              echo '```'
+              cat drift.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
