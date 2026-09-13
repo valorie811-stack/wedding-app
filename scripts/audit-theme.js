@@ -246,6 +246,17 @@ function checkWiring() {
       }
     }
   }
+
+  // A default padding joined to the caller's className by cx is settled by
+  // Tailwind's stylesheet order, not by the call site: .p-0 is generated before
+  // .p-5, so cx("p-5", "p-0") renders 20px and the override is a silent no-op —
+  // which is exactly the kind of regression this file exists to catch. It was
+  // live for as long as `<CardBody className="p-0">` existed. CardBody must
+  // drop its default when the caller supplies an all-sides padding.
+  const card = fs.readFileSync(path.join(ROOT, "components", "ui", "Card.jsx"), "utf8");
+  if (/cx\(\s*["']p-5["']\s*,\s*className\s*\)/.test(card)) {
+    fails.push("Card.jsx CardBody joins p-5 with className; a caller's p-0 loses to it (Tailwind orders .p-0 before .p-5)");
+  }
   return { name: "wiring", fails, detail: "globals.css does not match the asserted contrast pairs" };
 }
 

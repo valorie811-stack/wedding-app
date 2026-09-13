@@ -74,16 +74,19 @@ function InviteChip({ t, value }) {
   );
 }
 
-// Country and category are descriptors rather than signals, so they ride as
-// plain sans text at the end of the row — outside a Badge for the same
-// glyph-coverage reason as InviteChip. Renders nothing when both are unset.
-function GuestMeta({ t, guest }) {
-  const parts = [
-    optionLabel(t, "countries", guest.country),
-    optionLabel(t, "categories", guest.category),
-  ].filter(Boolean);
-  if (parts.length === 0) return null;
-  return <span className="text-sm text-stone-500">{parts.join(" · ")}</span>;
+// Side, country and category are descriptors rather than signals, and each now
+// owns a column whose header says what it is — so they are plain sans text
+// rather than chips. Outside a Badge for the same glyph-coverage reason as
+// InviteChip: these are translated values ("Nhà gái", "男方母亲"). Falls back to
+// the em dash the form already uses for "not recorded", so a column never has
+// a silently empty cell.
+function Cell({ t, group, value }) {
+  const label = optionLabel(t, group, value);
+  return label ? (
+    <span className="text-stone-700">{label}</span>
+  ) : (
+    <span className="text-stone-400">{t("guests.unset")}</span>
+  );
 }
 
 const blank = {
@@ -430,71 +433,141 @@ export default function GuestsView({ guests: initial, events, preview }) {
           </CardBody>
         </Card>
       ) : (
-        <Card>
+        // overflow-hidden because the body below really is edge to edge: the
+        // pinned name column carries an opaque background, and without clipping
+        // its square corner paints over the card's 16px radius.
+        <Card className="overflow-hidden">
           <CardBody className="p-0">
-            <ul className="divide-y divide-stone-100">
-              {visible.map((g) => (
-                <li key={g.id} className="group flex items-center gap-3 px-4 py-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-stone-100 text-sm font-semibold text-stone-600">
-                    {initials(g.full_name)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-stone-900">{g.full_name}</span>
-                      {/* side is NULL on a couple of live rows — guard it, or
-                          the badge prints the raw key path. */}
-                      {g.side && <Badge tone="neutral">{optionLabel(t, "sides", g.side)}</Badge>}
-                      <InviteChip t={t} value={g.invite_or_not} />
-                      {/* Only rows that bring more than one person get a chip —
-                          a party of one is just a guest, and "×1" would be a
-                          badge that says nothing. A recorded party size
-                          supersedes the plus-one chip: showing both would state
-                          two different head counts on one row. Rows that only
-                          ever had the flag keep the "+1" they have always
-                          shown. */}
-                      {headcount(g) > 1 &&
-                        (g.party_size ? (
-                          <Badge tone="gold">&times;{headcount(g)}</Badge>
-                        ) : (
-                          <>
-                            <Badge tone="gold">+1</Badge>
-                            {/* Name sits outside the Badge on purpose: Badge is
-                                11px mono chrome, which mangles Vietnamese
+            {/* One column per field, so a value can be read down the page
+                instead of hunted for among the chips on each row. Six columns
+                plus the row actions do not fit a phone, so the table scrolls
+                sideways rather than dropping columns — same idiom as the RSVP
+                matrix, name column pinned so a scrolled row still says who it
+                belongs to.
+
+                border-separate, and every rule drawn on the cells rather than
+                with divide-y on the rows: under border-collapse the borders
+                belong to the table and paint ABOVE cell backgrounds, so the
+                rows sliding under the pinned name column leave their dividers
+                showing through it. Row borders are not painted at all in
+                separate-borders mode, which is why the dividers sit on the
+                cells here. */}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[52rem] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="text-left text-stone-700 [&>th]:border-b [&>th]:border-stone-200">
+                    {/* stone-700, not the 500 this kind of chrome usually
+                        takes: 500 measures 3.2:1 on white, under the 4.5 floor
+                        for text this small.
+
+                        w-full on the name and w-px on the rest is the usual
+                        table trick for "size every column to its content and
+                        give the slack to this one" — without it the slack lands
+                        on the last column and the row actions float a screen
+                        width away from the row they act on. */}
+                    <th scope="col" className="sticky left-0 z-10 w-full bg-white px-4 py-2 font-medium">
+                      {t("guests.fullName")}
+                    </th>
+                    <th scope="col" className="w-px whitespace-nowrap px-3 py-2 font-medium">{t("guests.side")}</th>
+                    <th scope="col" className="w-px whitespace-nowrap px-3 py-2 font-medium">{t("guests.country")}</th>
+                    <th scope="col" className="w-px whitespace-nowrap px-3 py-2 font-medium">{t("guests.category")}</th>
+                    <th scope="col" className="w-px whitespace-nowrap px-3 py-2 text-right font-medium">
+                      {t("guests.partySize")}
+                    </th>
+                    <th scope="col" className="w-px whitespace-nowrap px-3 py-2 font-medium">{t("guests.events")}</th>
+                    {/* The actions column has no heading to print, but an empty
+                        <th> is announced as a blank column. */}
+                    <th scope="col" className="w-px px-4 py-2">
+                      <span className="sr-only">{t("guests.rowActions")}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((g) => (
+                    <tr
+                      key={g.id}
+                      className="group align-middle [&>td]:border-b [&>td]:border-stone-100 last:[&>td]:border-b-0"
+                    >
+                      <td className="sticky left-0 z-10 bg-white px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-stone-100 text-sm font-semibold text-stone-600">
+                            {initials(g.full_name)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-stone-900">{g.full_name}</span>
+                              <InviteChip t={t} value={g.invite_or_not} />
+                            </div>
+                            {/* Dietary needs and the plus-one's name have no
+                                column of their own, so they stay with the
+                                person they describe rather than being dropped.
+                                The name sits outside a Badge on purpose: Badge
+                                is 11px mono chrome, which mangles Vietnamese
                                 diacritics and CJK. */}
-                            {g.plus_one_name && (
-                              <span className="text-sm text-stone-700">{g.plus_one_name}</span>
-                            )}
-                          </>
-                        ))}
-                      {(g.dietary || []).map((d) => (
-                        <Badge key={d} tone="kk">
-                          {t(`guests.diet.${d}`)}
-                        </Badge>
-                      ))}
-                      <GuestMeta t={t} guest={g} />
-                    </div>
-                  </div>
-                  <div className="hidden flex-wrap justify-end gap-1 sm:flex">
-                    {scopedInvites(g).map((i) => {
-                      const ev = eventById.get(i.event_id);
-                      return (
-                        <span
-                          key={i.event_id}
-                          title={`${ev?.name?.[locale] || ev?.name?.en || ""}: ${t(`rsvp.status.${i.status}`)}`}
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${chipClass(i.status)}`}
-                        >
-                          {i.code}
+                            {(g.plus_one && g.plus_one_name) || (g.dietary || []).length > 0 ? (
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {g.plus_one && g.plus_one_name && (
+                                  <span className="text-xs text-stone-500">+ {g.plus_one_name}</span>
+                                )}
+                                {(g.dietary || []).map((d) => (
+                                  <Badge key={d} tone="kk">
+                                    {t(`guests.diet.${d}`)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        {/* side is NULL on a couple of live rows; Cell prints
+                            the em dash rather than the raw key path. */}
+                        <Cell t={t} group="sides" value={g.side} />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        <Cell t={t} group="countries" value={g.country} />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        <Cell t={t} group="categories" value={g.category} />
+                      </td>
+                      {/* The head count the app counts by, not the raw column —
+                          the same number the export writes and the summary
+                          cards total. Where it was never recorded it is the 1
+                          or 2 the plus-one rule infers, and greyed to say so:
+                          the column has a number on every row, but only the
+                          dark ones were actually answered. */}
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        <span className={g.party_size ? "text-stone-800" : "text-stone-400"}>
+                          {headcount(g)}
                         </span>
-                      );
-                    })}
-                  </div>
-                  <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                    <IconBtn label={t("common.edit")} onClick={() => openEdit(g)}><Icon name="edit" size={15} /></IconBtn>
-                    <IconBtn label={t("common.delete")} onClick={() => handleDelete(g)}><Icon name="trash" size={15} /></IconBtn>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {scopedInvites(g).map((i) => {
+                            const ev = eventById.get(i.event_id);
+                            return (
+                              <span
+                                key={i.event_id}
+                                title={`${ev?.name?.[locale] || ev?.name?.en || ""}: ${t(`rsvp.status.${i.status}`)}`}
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${chipClass(i.status)}`}
+                              >
+                                {i.code}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex shrink-0 justify-end gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                          <IconBtn label={t("common.edit")} onClick={() => openEdit(g)}><Icon name="edit" size={15} /></IconBtn>
+                          <IconBtn label={t("common.delete")} onClick={() => handleDelete(g)}><Icon name="trash" size={15} /></IconBtn>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardBody>
         </Card>
       )}
